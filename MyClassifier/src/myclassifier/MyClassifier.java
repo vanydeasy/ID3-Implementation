@@ -6,6 +6,7 @@
 package myclassifier;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Random;
@@ -14,6 +15,7 @@ import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.trees.Id3;
 import weka.core.Instances;
 import weka.core.converters.ArffLoader;
+import weka.core.converters.CSVLoader;
 
 /**
  *
@@ -25,13 +27,18 @@ public class MyClassifier {
      * @param args the command line arguments
      */
     public static void main(String[] args) throws IOException, Exception {
-        BufferedReader br = new BufferedReader(
-                         new FileReader("iris.arff"));
-
-        ArffLoader.ArffReader arff = new ArffLoader.ArffReader(br);
-        Instances data = arff.getData();
+        Instances data;
+        if (args[0].substring(args[0].lastIndexOf(".") + 1).equals("arff")){
+            BufferedReader br = new BufferedReader(new FileReader(args[0]));
+            ArffLoader.ArffReader arff = new ArffLoader.ArffReader(br);
+            data = arff.getData();
+        } else {
+            CSVLoader loader = new CSVLoader();
+            loader.setSource(new File(args[0]));
+            data = loader.getDataSet();
+        }
+        
         data.setClassIndex(data.numAttributes() - 1);
-
         NaiveBayes model = new NaiveBayes();
         model.buildClassifier(data);
         System.out.println(model.toString());
