@@ -26,7 +26,7 @@ public class MyClassifier {
      */
     public static void main(String[] args) throws IOException, Exception {
         BufferedReader br = new BufferedReader(
-                         new FileReader("weather.numeric.arff"));
+                         new FileReader("iris.arff"));
 
         ArffLoader.ArffReader arff = new ArffLoader.ArffReader(br);
         Instances data = arff.getData();
