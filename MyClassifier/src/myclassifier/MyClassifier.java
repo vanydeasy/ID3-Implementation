@@ -9,11 +9,18 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
+import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.trees.Id3;
+import weka.core.Attribute;
+import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.converters.ArffLoader;
 import weka.core.converters.CSVLoader;
@@ -56,6 +63,21 @@ public class MyClassifier {
         Evaluation eval = new Evaluation(data);
         eval.crossValidateModel(cls, data, 10, new Random());
         System.out.println(eval.toSummaryString("\n\n\n\nNaive Bayes 10-Fold Cross Validation\n============\n", false));
+        
+        // Prediction using user input
+        Scanner scan = new Scanner(System.in);
+        List<Attribute> attr = Collections.list(data.enumerateAttributes());
+        Instance predInst = new Instance(attr.size());
+        
+        for(int i=0;i<attr.size();i++) {
+            System.out.print("Data "+attr.get(i).name()+": ");
+            if(attr.get(i).isNumeric())
+                predInst.setValue(attr.get(i),scan.nextDouble());
+            else
+                predInst.setValue(attr.get(i),scan.next());
+        }
+        predInst.setDataset(data);
+        String prediction = data.classAttribute().value((int)cls.classifyInstance(predInst));
+        System.out.println("The predicted value of instance is "+prediction);
     }
-    
 }
