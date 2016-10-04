@@ -24,6 +24,8 @@ import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.converters.ArffLoader;
 import weka.core.converters.CSVLoader;
+import weka.filters.Filter;
+import weka.filters.unsupervised.attribute.Remove;
 
 /**
  *
@@ -35,6 +37,8 @@ public class MyClassifier {
      * @param args the command line arguments
      */
     public static void main(String[] args) throws IOException, Exception {
+        Scanner scan = new Scanner(System.in);
+        
         // Load data from ARFF or CSV
         Instances data;
         if (args[0].substring(args[0].lastIndexOf(".") + 1).equals("arff")){
@@ -46,11 +50,28 @@ public class MyClassifier {
             loader.setSource(new File(args[0]));
             data = loader.getDataSet();
         }
+        data.setClassIndex(data.numAttributes() - 1);
+        
+        // Remove atribut
+        Remove remove = new Remove();
+        List<Attribute> attr = Collections.list(data.enumerateAttributes());
+        Instance predInst = new Instance(attr.size());
+        
+        System.out.println("List of attributes\n-----------------");
+        for(int i=0;i<attr.size();i++) {
+            System.out.println(i+1 + ". " + attr.get(i).name());
+        }
+        
+        System.out.print("Attribute to be removed: ");
+        remove.setAttributeIndices(scan.next());
+        remove.setInvertSelection(false);
+        remove.setInputFormat(data);
+        
+        Instances dataNew = Filter.useFilter(data, remove);
         
         // Build Naive Bayes Model
-        data.setClassIndex(data.numAttributes() - 1);
         NaiveBayes model = new NaiveBayes();
-        model.buildClassifier(data);
+        model.buildClassifier(dataNew);
         System.out.println(model.toString());
         
         // Save Model
@@ -60,15 +81,11 @@ public class MyClassifier {
         Classifier cls = (Classifier) weka.core.SerializationHelper.read(args[0].substring(0, args[0].indexOf('.')) + "_naivebayes.model");
         
         // 10-fold Cross Validation Evaluation
-        Evaluation eval = new Evaluation(data);
+        Evaluation eval = new Evaluation(dataNew);
         eval.crossValidateModel(cls, data, 10, new Random());
         System.out.println(eval.toSummaryString("\n\n\n\nNaive Bayes 10-Fold Cross Validation\n============\n", false));
         
         // Prediction using user input
-        Scanner scan = new Scanner(System.in);
-        List<Attribute> attr = Collections.list(data.enumerateAttributes());
-        Instance predInst = new Instance(attr.size());
-        
         for(int i=0;i<attr.size();i++) {
             System.out.print("Data "+attr.get(i).name()+": ");
             if(attr.get(i).isNumeric())
