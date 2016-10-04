@@ -49,12 +49,15 @@ public class MyClassifier {
         for(int i=0;i<attr.size();i++) {
             System.out.println(i+1 + ". " + attr.get(i).name());
         }
-        System.out.print("Attribute to be removed: ");
-        Instances dataNew = MyClassifier.removeAttribute(data, scan.next());
+        System.out.print("Want to remove attribute (y/n)? ");
+        if (scan.next().equals("y") || scan.next().equals("Y")){
+            System.out.print("Attribute to be removed: ");
+            data = MyClassifier.removeAttribute(data, scan.next());
+        }
         
         // Build Naive Bayes Model
         NaiveBayes model = new NaiveBayes();
-        model.buildClassifier(dataNew);
+        model.buildClassifier(data);
         System.out.println(model.toString());
         
         // Save Model
@@ -62,22 +65,24 @@ public class MyClassifier {
         MyClassifier.SaveModel(model, scan.next());
         
         // Load Model
-        System.out.print("Load Model\n----------\nfilename: ");
+        System.out.print("\nLoad Model\n----------\nfilename: ");
         Classifier cls = MyClassifier.LoadModel(scan.next());
         
         // 10-fold Cross Validation Evaluation
-        Evaluation eval = new Evaluation(dataNew);
+        Evaluation eval = new Evaluation(data);
         eval.crossValidateModel(cls, data, 10, new Random());
-        System.out.println(eval.toSummaryString("\n\n\n\nNaive Bayes 10-Fold Cross Validation\n============\n", false));
+        System.out.println(eval.toSummaryString("\n\n\n\nNaive Bayes 10-Fold Cross Validation\n============", false));
         
         // Prediction using user input
-        Instance predInst = new Instance(attr.size());
-        for(int i=0;i<attr.size();i++) {
-            System.out.print("Data "+attr.get(i).name()+": ");
-            if(attr.get(i).isNumeric())
-                predInst.setValue(attr.get(i),scan.nextDouble());
+        System.out.println("\nClassify Unseen Instance\n-------------------------");
+        List<Attribute> attrNew = Collections.list(data.enumerateAttributes());
+        Instance predInst = new Instance(attrNew.size());
+        for(int i=0;i<attrNew.size();i++) {
+            System.out.print("Data "+attrNew.get(i).name()+": ");
+            if(attrNew.get(i).isNumeric())
+                predInst.setValue(attrNew.get(i),scan.nextDouble());
             else
-                predInst.setValue(attr.get(i),scan.next());
+                predInst.setValue(attrNew.get(i),scan.next());
         }
         predInst.setDataset(data);
         String prediction = data.classAttribute().value((int)cls.classifyInstance(predInst));
