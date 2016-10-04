@@ -7,6 +7,7 @@ package myclassifier;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Collections;
@@ -40,34 +41,16 @@ public class MyClassifier {
         Scanner scan = new Scanner(System.in);
         
         // Load data from ARFF or CSV
-        Instances data;
-        if (args[0].substring(args[0].lastIndexOf(".") + 1).equals("arff")){
-            BufferedReader br = new BufferedReader(new FileReader(args[0]));
-            ArffLoader.ArffReader arff = new ArffLoader.ArffReader(br);
-            data = arff.getData();
-        } else {
-            CSVLoader loader = new CSVLoader();
-            loader.setSource(new File(args[0]));
-            data = loader.getDataSet();
-        }
-        data.setClassIndex(data.numAttributes() - 1);
+        Instances data = MyClassifier.loadData(args[0]);
         
         // Remove atribut
-        Remove remove = new Remove();
         List<Attribute> attr = Collections.list(data.enumerateAttributes());
-        Instance predInst = new Instance(attr.size());
-        
         System.out.println("List of attributes\n-----------------");
         for(int i=0;i<attr.size();i++) {
             System.out.println(i+1 + ". " + attr.get(i).name());
         }
-        
         System.out.print("Attribute to be removed: ");
-        remove.setAttributeIndices(scan.next());
-        remove.setInvertSelection(false);
-        remove.setInputFormat(data);
-        
-        Instances dataNew = Filter.useFilter(data, remove);
+        Instances dataNew = MyClassifier.removeAttribute(data, scan.next());
         
         // Build Naive Bayes Model
         NaiveBayes model = new NaiveBayes();
@@ -75,10 +58,12 @@ public class MyClassifier {
         System.out.println(model.toString());
         
         // Save Model
-        weka.core.SerializationHelper.write(args[0].substring(0, args[0].indexOf('.')) + "_naivebayes.model", model);
+        System.out.print("Save Model\n----------\nfilename: ");
+        MyClassifier.SaveModel(model, scan.next());
         
         // Load Model
-        Classifier cls = (Classifier) weka.core.SerializationHelper.read(args[0].substring(0, args[0].indexOf('.')) + "_naivebayes.model");
+        System.out.print("Load Model\n----------\nfilename: ");
+        Classifier cls = MyClassifier.LoadModel(scan.next());
         
         // 10-fold Cross Validation Evaluation
         Evaluation eval = new Evaluation(dataNew);
@@ -86,6 +71,7 @@ public class MyClassifier {
         System.out.println(eval.toSummaryString("\n\n\n\nNaive Bayes 10-Fold Cross Validation\n============\n", false));
         
         // Prediction using user input
+        Instance predInst = new Instance(attr.size());
         for(int i=0;i<attr.size();i++) {
             System.out.print("Data "+attr.get(i).name()+": ");
             if(attr.get(i).isNumeric())
@@ -96,5 +82,38 @@ public class MyClassifier {
         predInst.setDataset(data);
         String prediction = data.classAttribute().value((int)cls.classifyInstance(predInst));
         System.out.println("The predicted value of instance is "+prediction);
+    }
+    
+    public static Instances loadData(String filename) throws FileNotFoundException, IOException {
+        Instances data;
+        if (filename.substring(filename.lastIndexOf(".") + 1).equals("arff")){
+            BufferedReader br = new BufferedReader(new FileReader(filename));
+            ArffLoader.ArffReader arff = new ArffLoader.ArffReader(br);
+            data = arff.getData();
+        } else {
+            CSVLoader loader = new CSVLoader();
+            loader.setSource(new File(filename));
+            data = loader.getDataSet();
+        }
+        data.setClassIndex(data.numAttributes() - 1);
+        return data;
+    }
+    
+    public static Instances removeAttribute (Instances data, String attr) throws Exception {
+        Remove remove = new Remove();
+        remove.setAttributeIndices(attr);
+        remove.setInvertSelection(false);
+        remove.setInputFormat(data);
+        
+        return Filter.useFilter(data, remove);
+    }
+    
+    public static void SaveModel(Classifier model, String filename) throws Exception {
+        weka.core.SerializationHelper.write(filename, model);
+    }
+    
+    public static Classifier LoadModel(String filename) throws Exception {
+        Classifier cls = (Classifier) weka.core.SerializationHelper.read(filename);
+        return cls;
     }
 }
