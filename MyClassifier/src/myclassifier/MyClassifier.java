@@ -20,6 +20,7 @@ import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.trees.Id3;
+import weka.classifiers.trees.J48;
 import weka.core.Attribute;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -27,6 +28,7 @@ import weka.core.converters.ArffLoader;
 import weka.core.converters.CSVLoader;
 import weka.filters.Filter;
 import weka.filters.unsupervised.attribute.Remove;
+import weka.filters.unsupervised.attribute.RemoveType;
 
 /**
  *
@@ -50,13 +52,22 @@ public class MyClassifier {
             System.out.println(i+1 + ". " + attr.get(i).name());
         }
         System.out.print("Want to remove attribute (y/n)? ");
-        if (scan.next().equals("y") || scan.next().equals("Y")){
+        if (scan.nextLine().equalsIgnoreCase("y")){
             System.out.print("Attribute to be removed: ");
-            data = MyClassifier.removeAttribute(data, scan.next());
+            data = MyClassifier.removeAttribute(data, scan.nextLine());
         }
         
-        // Build Naive Bayes Model
-        NaiveBayes model = new NaiveBayes();
+        // Build Model
+        System.out.println("\nDecision Tree Classifiers\n-----------------");
+        System.out.println("1. ID3");
+        System.out.println("2. J48");
+        System.out.print("Choose classifier: ");
+        Classifier model;
+        if (scan.next().equals("1")){
+            model = new Id3();
+        } else {
+            model = new J48();
+        }
         model.buildClassifier(data);
         System.out.println(model.toString());
         
