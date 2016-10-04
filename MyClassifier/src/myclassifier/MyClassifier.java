@@ -41,13 +41,15 @@ public class MyClassifier {
      */
     public static void main(String[] args) throws IOException, Exception {
         Scanner scan = new Scanner(System.in);
-        
+        System.out.print("Insert filename: ");
+        String filename = scan.nextLine();
+
         // Load data from ARFF or CSV
-        Instances data = MyClassifier.loadData(args[0]);
+        Instances data = MyClassifier.loadData(filename);
         
         // Remove atribut
         List<Attribute> attr = Collections.list(data.enumerateAttributes());
-        System.out.println("List of attributes\n-----------------");
+        System.out.println("\nList of attributes\n-----------------");
         for(int i=0;i<attr.size();i++) {
             System.out.println(i+1 + ". " + attr.get(i).name());
         }
@@ -57,32 +59,43 @@ public class MyClassifier {
             data = MyClassifier.removeAttribute(data, scan.nextLine());
         }
         
-        // Build Model
-        System.out.println("\nDecision Tree Classifiers\n-----------------");
-        System.out.println("1. ID3");
-        System.out.println("2. J48");
-        System.out.print("Choose classifier: ");
+        // Build or Load model
         Classifier model;
-        if (scan.next().equals("1")){
-            model = new Id3();
-        } else {
-            model = new J48();
+        System.out.println("\nBuild or Load Model\n-----------------");
+        System.out.println("1. Build Model");
+        System.out.println("2. Load Existing Model");
+        System.out.print("Choose: ");
+        if (scan.nextLine().equals("1")){ // Build Model
+            System.out.println("\nDecision Tree Classifiers\n-----------------");
+            System.out.println("1. ID3");
+            System.out.println("2. J48");
+            System.out.print("Choose classifier: ");
+            
+            if (scan.nextLine().equals("1")){
+                model = new Id3();
+            } else {
+                model = new J48();
+            }
+            model.buildClassifier(data);
+            System.out.println(model.toString());
+
+            // Save Model
+            System.out.print("Want to save model (y/n)? ");
+            if (scan.nextLine().equalsIgnoreCase("y")){
+                System.out.print("filename: ");
+                MyClassifier.SaveModel(model, scan.next());
+                System.out.print("Model Saved!\n");
+            }
+        } else { // Load Model 
+            System.out.print("\nLoad Model\n----------\nfilename: ");
+            model = MyClassifier.LoadModel(scan.next());
+            System.out.print("Model Loaded!\n");
         }
-        model.buildClassifier(data);
-        System.out.println(model.toString());
-        
-        // Save Model
-        System.out.print("Save Model\n----------\nfilename: ");
-        MyClassifier.SaveModel(model, scan.next());
-        
-        // Load Model
-        System.out.print("\nLoad Model\n----------\nfilename: ");
-        Classifier cls = MyClassifier.LoadModel(scan.next());
         
         // 10-fold Cross Validation Evaluation
         Evaluation eval = new Evaluation(data);
-        eval.crossValidateModel(cls, data, 10, new Random());
-        System.out.println(eval.toSummaryString("\n\n\n\nNaive Bayes 10-Fold Cross Validation\n============", false));
+        eval.crossValidateModel(model, data, 10, new Random());
+        System.out.println(eval.toSummaryString("\n\n\n\n10-Fold Cross Validation\n============", false));
         
         // Prediction using user input
         System.out.println("\nClassify Unseen Instance\n-------------------------");
@@ -96,7 +109,7 @@ public class MyClassifier {
                 predInst.setValue(attrNew.get(i),scan.next());
         }
         predInst.setDataset(data);
-        String prediction = data.classAttribute().value((int)cls.classifyInstance(predInst));
+        String prediction = data.classAttribute().value((int)model.classifyInstance(predInst));
         System.out.println("The predicted value of instance is "+prediction);
     }
     
