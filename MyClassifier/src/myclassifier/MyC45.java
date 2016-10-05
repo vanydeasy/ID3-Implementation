@@ -34,7 +34,7 @@ public class MyC45 {
     }
     
     // Splits a dataset according to the values of a nominal attribute.
-    private Instances[] splitData(Instances data, Attribute att) {
+    private Instances[] splitNominalData(Instances data, Attribute att) {
         Instances[] splitData = new Instances[att.numValues()];
         for (int j = 0; j < att.numValues(); j++) {
             splitData[j] = new Instances(data, data.numInstances());
@@ -49,24 +49,53 @@ public class MyC45 {
         return splitData;
     }
     
-    // Computes information gain for an attribute.
-    private double computeIG(Instances data, Attribute att) throws Exception {
+    // Splits a dataset according to a numeric attribute's threashold
+    private Instances[] splitNumericData(Instances data, Attribute att, Double threshold) {
+        Instances[] splitData = new Instances[2];
+        splitData[0] = new Instances(data, data.numInstances());
+        splitData[1] = new Instances(data, data.numInstances());
+        for (int i = 0; i < data.numInstances(); i++) {
+            if (data.instance(i).value(att) <= threshold) {
+                splitData[0].add(data.instance(i));
+            } else {
+                splitData[1].add(data.instance(i));
+            }
+        }
+        splitData[0].compactify();
+        splitData[1].compactify();
+        return splitData;
+    }
+    
+    // Computes information gain for a nominal attribute
+    private double computeNominalIG(Instances data, Attribute att) throws Exception {
         double IG = computeEntropy(data);
-        if (att.isNumeric()){
-            
-        } else { // nominal
-            Instances[] splitData = splitData(data, att);
-            for (Instances splitdata : splitData) {
-                if (splitdata.numInstances() > 0) {
-                    double splitNumInstances = splitdata.numInstances();
-                    double dataNumInstances = data.numInstances();
-                    double proportion = splitNumInstances / dataNumInstances;
-                    IG -= proportion * computeEntropy(splitdata);
-                }
+        Instances[] splitData = splitNominalData(data, att);
+        for (Instances splitdata : splitData) {
+            if (splitdata.numInstances() > 0) {
+                double splitNumInstances = splitdata.numInstances();
+                double dataNumInstances = data.numInstances();
+                double proportion = splitNumInstances / dataNumInstances;
+                IG -= proportion * computeEntropy(splitdata);
             }
         }
         return IG;
     }
+    
+    // Computes information gain for a numeric attribute
+    private double computeNumericIG(Instances data, Attribute att, Double threshold) throws Exception {
+        double IG = computeEntropy(data);
+        Instances[] splitData = splitNumericData(data, att, threshold);
+        for (Instances splitdata : splitData) {
+            if (splitdata.numInstances() > 0) {
+                double splitNumInstances = splitdata.numInstances();
+                double dataNumInstances = data.numInstances();
+                double proportion = splitNumInstances / dataNumInstances;
+                IG -= proportion * computeEntropy(splitdata);
+            }
+        }
+        return IG;
+    }
+    
     
     // Calculate threshold for numeric attributes
     private double caculateThreshold(Instances data, Attribute att) {
