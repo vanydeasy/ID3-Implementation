@@ -14,11 +14,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
-import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.trees.Id3;
 import weka.classifiers.trees.J48;
 import weka.core.Attribute;
@@ -30,7 +27,6 @@ import weka.core.converters.ConverterUtils;
 import weka.filters.Filter;
 import weka.filters.supervised.instance.Resample;
 import weka.filters.unsupervised.attribute.Remove;
-import weka.filters.unsupervised.attribute.RemoveType;
 
 /**
  *
@@ -77,9 +73,9 @@ public class MyClassifier {
             
             // Choose classifier
             System.out.println("\nDecision Tree Classifiers\n-----------------");
-            System.out.println("1. ID3");
+            System.out.println("1. WEKA ID3");
             System.out.println("2. myID3");
-            System.out.println("3. J48");
+            System.out.println("3. WEKA J48");
             System.out.println("4. myJ48");
             System.out.print("Choose classifier: ");
             
