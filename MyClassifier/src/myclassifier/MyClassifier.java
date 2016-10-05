@@ -42,7 +42,7 @@ public class MyClassifier {
      */
     public static void main(String[] args) throws IOException, Exception {
         Scanner scan = new Scanner(System.in);
-        System.out.print("Insert filename: ");
+        System.out.print("filename (.arff or .csv): ");
         String filename = scan.nextLine();
 
         // Load data from ARFF or CSV
@@ -86,10 +86,35 @@ public class MyClassifier {
                 model = new J48();
             }
             
-            // Build Classifier
-            model.buildClassifier(data);
-            System.out.println(model.toString());
-
+            // 10-fold cross validation or Percentage split
+            System.out.println("\nEvaluation Method\n-----------------");
+            System.out.println("1. 10-fold cross validation");
+            System.out.println("2. Percentage split");
+            System.out.print("Choose evaluation method: ");
+            if (scan.nextLine().equals("1")){
+                // Build Classifier
+                model.buildClassifier(data);
+                System.out.println(model.toString());
+ 
+                Evaluation eval = new Evaluation(data);
+                eval.crossValidateModel(model, data, 10, new Random());
+                System.out.println(eval.toSummaryString("\n10-Fold Cross Validation\n============", false));
+            } else {
+                System.out.print("Training data percentage (in %): ");
+                int trainSize = (int) Math.round(data.numInstances() * Double.parseDouble(scan.nextLine())/100);
+                int testSize = data.numInstances() - trainSize;
+                Instances train = new Instances(data, 0, trainSize);
+                Instances test = new Instances(data, trainSize, testSize);
+                
+                // Build Classifier
+                model.buildClassifier(train);
+                System.out.println(model.toString());
+                
+                Evaluation eval = new Evaluation(test);
+                eval.evaluateModel(model, test);
+                System.out.println(eval.toSummaryString("\nPercentage Split Validation\n============", false));
+            }
+            
             // Save Model
             System.out.print("Want to save model (y/n)? ");
             if (scan.nextLine().equalsIgnoreCase("y")){
@@ -97,16 +122,12 @@ public class MyClassifier {
                 MyClassifier.SaveModel(model, scan.next());
                 System.out.print("Model Saved!\n");
             }
+            
         } else { // Load Model 
-            System.out.print("\nLoad Model\n----------\nfilename: ");
+            System.out.print("\nLoad Model\n----------\nfilename (.model): ");
             model = MyClassifier.LoadModel(scan.next());
             System.out.print("Model Loaded!\n");
         }
-        
-        // 10-fold Cross Validation Evaluation
-        Evaluation eval = new Evaluation(data);
-        eval.crossValidateModel(model, data, 10, new Random());
-        System.out.println(eval.toSummaryString("\n\n\n\n10-Fold Cross Validation\n============", false));
         
         // Prediction using user input
         System.out.println("\nClassify Unseen Instance\n-------------------------");
