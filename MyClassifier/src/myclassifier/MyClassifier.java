@@ -109,19 +109,7 @@ public class MyClassifier {
         System.out.println(eval.toSummaryString("\n\n\n\n10-Fold Cross Validation\n============", false));
         
         // Prediction using user input
-        System.out.println("\nClassify Unseen Instance\n-------------------------");
-        List<Attribute> attrNew = Collections.list(data.enumerateAttributes());
-        Instance predInst = new Instance(attrNew.size());
-        for(int i=0;i<attrNew.size();i++) {
-            System.out.print("Data "+attrNew.get(i).name()+": ");
-            if(attrNew.get(i).isNumeric())
-                predInst.setValue(attrNew.get(i),scan.nextDouble());
-            else
-                predInst.setValue(attrNew.get(i),scan.next());
-        }
-        predInst.setDataset(data);
-        String prediction = data.classAttribute().value((int)model.classifyInstance(predInst));
-        System.out.println("The predicted value of instance is "+prediction);
+        MyClassifier.predictInstance(data, model);
     }
     
     public static Instances loadData(String filename) throws FileNotFoundException, IOException {
@@ -170,5 +158,28 @@ public class MyClassifier {
 		e.printStackTrace();
 	}
 	return filteredIns;
+    }
+    
+    public static void predictInstance(Instances data, Classifier model) {
+        System.out.println("\nClassify Unseen Instance\n-------------------------");
+        
+        Scanner scan = new Scanner(System.in);
+        List<Attribute> attrNew = Collections.list(data.enumerateAttributes());
+        Instance predInst = new Instance(attrNew.size());
+        
+        for(int i=0;i<attrNew.size();i++) {
+            System.out.print("Data "+attrNew.get(i).name()+": ");
+            if(attrNew.get(i).isNumeric())
+                predInst.setValue(attrNew.get(i),scan.nextDouble());
+            else
+                predInst.setValue(attrNew.get(i),scan.next());
+        }
+        predInst.setDataset(data);
+        try {
+            String prediction = data.classAttribute().value((int)model.classifyInstance(predInst));
+            System.out.println("The predicted value of instance is "+prediction);
+        } catch (Exception ex) {
+            Logger.getLogger(MyClassifier.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 }
