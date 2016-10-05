@@ -98,14 +98,18 @@ public class MyC45 {
     
     
     // Calculate threshold for numeric attributes
-    private double caculateThreshold(Instances data, Attribute att) {
-        double threshold = 0;
-        // sort data berdasarkan attr
-        // foreach instance
-            // if class current instance beda sama class next instance
-                // hitung information gain
-                // if IG > threshold
-                    // threshold = current attr value
+    private double caculateThreshold(Instances data, Attribute att) throws Exception {
+        data.sort(att);
+        double threshold = data.instance(0).value(att);
+        double IG = 0;
+        for (int i = 0; i < data.numInstances()-1; i++){
+            if (data.instance(i).classValue() != data.instance(i+1).classValue()) {
+                double currentIG = computeNumericIG(data, att, data.instance(i).value(att));
+                if (currentIG > IG) {
+                    threshold = data.instance(i).value(att);
+                }
+            }
+        }
         return threshold;
     }
 }
