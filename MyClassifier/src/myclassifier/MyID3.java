@@ -9,12 +9,13 @@ import weka.core.Attribute;
 import java.util.Enumeration;
 import java.util.stream.DoubleStream;
 import weka.classifiers.Classifier;
-import weka.classifiers.trees.Id3;
 import weka.core.Capabilities;
 import weka.core.Capabilities.Capability;
 import weka.core.Instance;
 import weka.core.Instances;
+import weka.core.NoSupportForMissingValuesException;
 import weka.core.Utils;
+import weka.core.converters.ConverterUtils;
 
 /**
  *
@@ -170,6 +171,19 @@ public class MyID3 extends Classifier {
         inst = new Instances(inst);
         inst.deleteWithMissingClass();
         buildTree(inst);
+    }
+    
+    //classifies a given instance using the decision tree model
+    @Override
+    public double classifyInstance(Instance instance) throws NoSupportForMissingValuesException {
+        if (instance.hasMissingValue()) {
+            throw new NoSupportForMissingValuesException("MyID3 cannot handle missing values");
+        }
+        if (splitAttr == null) {
+            return label;
+        } else {
+            return children[(int) instance.value(splitAttr)].classifyInstance(instance);
+        }
     }
     
     // Prints the decision tree using the private toString method from below.

@@ -26,6 +26,7 @@ import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.converters.ArffLoader;
 import weka.core.converters.CSVLoader;
+import weka.core.converters.ConverterUtils;
 import weka.filters.Filter;
 import weka.filters.supervised.instance.Resample;
 import weka.filters.unsupervised.attribute.Remove;
@@ -77,11 +78,18 @@ public class MyClassifier {
             // Choose classifier
             System.out.println("\nDecision Tree Classifiers\n-----------------");
             System.out.println("1. ID3");
-            System.out.println("2. J48");
+            System.out.println("2. myID3");
+            System.out.println("3. J48");
+            System.out.println("4. myJ48");
             System.out.print("Choose classifier: ");
             
-            if (scan.nextLine().equals("1")){
+            String input = new String(scan.nextLine());
+            if (input.equals("1")){
                 model = new Id3();
+            } else if (input.equals("2")) {
+                model = new MyID3();
+            } else if (input.equals("3")) {
+                model = new J48();
             } else {
                 model = new J48();
             }
@@ -95,7 +103,18 @@ public class MyClassifier {
                 // Build Classifier
                 model.buildClassifier(data);
                 System.out.println(model.toString());
- 
+                if (input.equals("2")) { //MyID3
+                    Instances unlabeled = ConverterUtils.DataSource.read(filename);
+                    unlabeled.setClassIndex(unlabeled.numAttributes() - 1);
+                    Instances labeled = new Instances(unlabeled);
+                    
+                    // label instances
+                    for (int i=0; i<unlabeled.numInstances(); ++i) {
+                        double clsLabel = model.classifyInstance(unlabeled.instance(i));
+                        labeled.instance(i).setClassValue(clsLabel);
+                        System.out.println(labeled.instance(i));
+                    } 
+                }
                 Evaluation eval = new Evaluation(data);
                 eval.crossValidateModel(model, data, 10, new Random());
                 System.out.println(eval.toSummaryString("\n10-Fold Cross Validation\n============", false));
