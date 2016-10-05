@@ -18,7 +18,8 @@ import weka.core.Utils;
  * @author Pipin
  */
 public class MyID3 extends Classifier {
-    private Id3[] successors; //node's successor
+    private final double MISSING_VALUE = Double.NaN;
+    private Id3[] children; //node's successor
     private double label; //class value if node is leaf
     private Attribute attribute; //used for splitting
     private Attribute classAttr; //class attribute of dataset
@@ -26,20 +27,19 @@ public class MyID3 extends Classifier {
     
      //Computes the entropy of a dataset.
     private double computeEntropy(Instances data) throws Exception {
-        double [] classCounter = new double[data.numClasses()];
+        double [] labelCounter = new double[data.numClasses()];
         for(int i=0; i<data.numInstances(); ++i){
-            Instance inst = (Instance) data.instance(i);
-            classCounter[(int) inst.classValue()]++;
+            labelCounter[(int) data.instance(i).classValue()]++;
         }
         
         double entropy = 0;
-        for (int i=0; i<data.numClasses(); ++i) {
-            if (classCounter[i] > 0) {
-                entropy -= classCounter[i]*Utils.log2(classCounter[i]);
+        for (int i=0; i<labelCounter.length; ++i) {
+            if (labelCounter[i] > 0) {
+                double proportion = labelCounter[i]/data.numInstances();
+                entropy -= (proportion)*Utils.log2(proportion);
             }
         }
-        entropy /= (double) data.numInstances(); //ini kayanya bisa diubah
-        return entropy+Utils.log2(data.numInstances());
+        return entropy;
     }
     
     //Splits a dataset according to the values of a nominal attribute.
@@ -48,11 +48,13 @@ public class MyID3 extends Classifier {
         for (int j = 0; j < att.numValues(); j++) {
             splitData[j] = new Instances(data, data.numInstances());
         }
-        Enumeration instEnum = data.enumerateInstances();
-            while (instEnum.hasMoreElements()) {
-                Instance inst = (Instance) instEnum.nextElement();
-                splitData[(int) inst.value(att)].add(inst);
-            }
+        for (int i=0; i<data.numInstances(); ++i) {
+            splitData[(int) data.instance(i).value(att)].add(data.instance(i));
+        }
+
+        for (int i=0; i<splitData.length; ++i) {
+            splitData[i].compactify();
+        }
         return splitData;
     }
     
@@ -60,17 +62,96 @@ public class MyID3 extends Classifier {
     private double computeIG(Instances data, Attribute att) throws Exception {
         double IG = computeEntropy(data);
         Instances[] splitData = splitData(data, att);
-        for (int j = 0; j < att.numValues(); j++) {
-          if (splitData[j].numInstances() > 0) {
-            IG -= ((double) splitData[j].numInstances() /
-                         (double) data.numInstances()) *
-              computeEntropy(splitData[j]);
-          }
+        for (Instances splitdata : splitData) {
+            if (splitdata.numInstances() > 0) {
+                double splitNumInstances = splitdata.numInstances();
+                double dataNumInstances = data.numInstances();
+                double proportion = splitNumInstances / dataNumInstances;
+                IG -= proportion * computeEntropy(splitdata);
+            }
         }
         return IG;
     }
     
+    //return the index with largest value from array
+    private int maxIndex(double[] array) {
+        double max=0;
+        int index=0;
+        if (array.length>0) {
+            for (int i=0; i<array.length; ++i) {
+                if (array[i]>max) {
+                    max=array[i];
+                    index=i;
+                }
+            }
+            return index;
+        } else {
+            return -1;
+        }
+    }
+    
+    // Creates an Id3 tree.
+    private void builTree(Instances data) throws Exception {
+        //cek apakah terdapat instance yang dalam node ini
+        if (data.numInstances() == 0) {
+            attribute = null;
+            label = MISSING_VALUE;
+            distribution = new double[data.numClasses()];
+        } else {
+            //jika ada, menghitung IG maksimum
+            double[] infoGains = new double[data.numAttributes()];
+            
+            //@TODO : UBAH SEMUA INSTANCE KE NOMINAL
+            
+            Enumeration attEnum = data.enumerateAttributes();
+            while (attEnum.hasMoreElements()) {
+                Attribute att = (Attribute) attEnum.nextElement();
+                infoGains[att.index()] = computeIG(data, att);
+            }
+
+            attribute = data.attribute(maxIndex(infoGains));
+
+            //@TODO : CEK IG. JIKA NOL, BUAT DAUN
+            //JIKA TIDAK, BUAT TREE BARU (REKURSIF)
+        }
+    }
+    
     public void buildClassifier(Instances i) throws Exception {
         //HAHAHA
+    }
+    
+    // Prints the decision tree using the private toString method from below.
+    @Override
+    public String toString() {
+
+        if ((distribution == null) && (children == null)) {
+            return "MyID3: No DT model";
+        }
+        return "MyID3\n\n" + toString(0);
+    }
+    
+    //Outputs a tree at a certain level
+    private String toString(int level) {
+        StringBuilder result = new StringBuilder();
+        if (attribute == null) {
+            if (Instance.isMissingValue(label)) {
+                result.append(": null");
+            } else {
+                result.append(": ").append(attribute.value((int) label));
+            }
+        } else {
+            for (int i=0; i<attribute.numValues(); i++) {
+                result.append("\n");
+                
+                int j=0;
+                while(j<level) {
+                    result.append("|  ");
+                    j++;
+                }
+                result.append(attribute.name()).append(" = ").append(attribute.value(i));
+                //result.append(children[i].toString(level+1)); //WHYYYYYY
+            }
+        }
+        return result.toString();
     }
 }
