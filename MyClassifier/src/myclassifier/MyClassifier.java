@@ -27,6 +27,7 @@ import weka.core.Instances;
 import weka.core.converters.ArffLoader;
 import weka.core.converters.CSVLoader;
 import weka.filters.Filter;
+import weka.filters.supervised.instance.Resample;
 import weka.filters.unsupervised.attribute.Remove;
 import weka.filters.unsupervised.attribute.RemoveType;
 
@@ -66,6 +67,14 @@ public class MyClassifier {
         System.out.println("2. Load Existing Model");
         System.out.print("Choose: ");
         if (scan.nextLine().equals("1")){ // Build Model
+            // Resample instances
+            System.out.print("Want to resample (y/n)? ");
+            if (scan.nextLine().equalsIgnoreCase("y")){
+                data = MyClassifier.filterResample(data);
+                System.out.print("Instances Resampled!\n");
+            }
+            
+            // Choose classifier
             System.out.println("\nDecision Tree Classifiers\n-----------------");
             System.out.println("1. ID3");
             System.out.println("2. J48");
@@ -76,6 +85,8 @@ public class MyClassifier {
             } else {
                 model = new J48();
             }
+            
+            // Build Classifier
             model.buildClassifier(data);
             System.out.println(model.toString());
 
@@ -144,5 +155,20 @@ public class MyClassifier {
     public static Classifier LoadModel(String filename) throws Exception {
         Classifier cls = (Classifier) weka.core.SerializationHelper.read(filename);
         return cls;
+    }
+    
+    public static Instances filterResample(Instances data) {
+	final Resample filter = new Resample();
+	Instances filteredIns = null;
+	filter.setBiasToUniformClass(1.0);
+	try {
+		filter.setInputFormat(data);
+		filter.setNoReplacement(false);
+		filter.setSampleSizePercent(100);
+		filteredIns = Filter.useFilter(data, filter);
+	} catch (Exception e) {
+		e.printStackTrace();
+	}
+	return filteredIns;
     }
 }
