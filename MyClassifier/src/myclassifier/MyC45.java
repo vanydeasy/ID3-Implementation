@@ -5,7 +5,9 @@
  */
 package myclassifier;
 
+import weka.classifiers.Classifier;
 import weka.core.Attribute;
+import weka.core.Capabilities;
 import weka.core.Instances;
 import weka.core.Utils;
 
@@ -13,8 +15,24 @@ import weka.core.Utils;
  *
  * @author Venny
  */
-public class MyC45 {
+public class MyC45 extends Classifier {
     
+    //returns default capabilities of the classifier
+    
+    @Override
+    public Capabilities getCapabilities() {
+        Capabilities result = super.getCapabilities();
+        result.disableAll();
+        
+        result.enable(Capabilities.Capability.MISSING_VALUES);
+        result.enable(Capabilities.Capability.NOMINAL_ATTRIBUTES);
+        result.enable(Capabilities.Capability.NUMERIC_ATTRIBUTES);
+        result.enable(Capabilities.Capability.MISSING_CLASS_VALUES);
+        result.enable(Capabilities.Capability.NOMINAL_CLASS);
+        result.setMinimumNumberInstances(0);
+        
+        return result;
+    }
     
     // Computes the entropy of a dataset.
     private double computeEntropy(Instances data) throws Exception {
@@ -111,5 +129,11 @@ public class MyC45 {
             }
         }
         return threshold;
+    }
+    
+    //builds J48 tree classifier
+    @Override
+    public void buildClassifier(Instances data){
+        //LALALALALALALA
     }
 }
