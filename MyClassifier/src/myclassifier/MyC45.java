@@ -5,6 +5,9 @@
  */
 package myclassifier;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import weka.classifiers.Classifier;
 import weka.core.Attribute;
 import weka.core.Capabilities;
@@ -131,7 +134,32 @@ public class MyC45 extends Classifier {
         return threshold;
     }
     
-    //builds J48 tree classifier
+    // Replace missing value with most common value of the attr among other examples with same target value 
+    private void handleMissingValue (Instances data) {
+        for (int i = 0; i < data.numInstances(); i++) {
+            for (int j = 0; j < data.numAttributes(); j++) {
+                if (data.instance(i).isMissing(j)) { // jika value untuk atribut ke-j missing
+                    data.instance(i).setValue(data.attribute(j), mostCommonValue(data, data.attribute(j), data.instance(i).classValue()));
+                }
+            }
+        }
+    }
+    
+    private double mostCommonValue (Instances data, Attribute att, Double classValue) {
+        List<Double> valList = Collections.list(att.enumerateValues());
+        int [] attCount = new int [att.numValues()];
+        for (int i = 0; i < data.numInstances(); i++) {
+            for (int j = 0; j < att.numValues(); j++) {
+                if (data.instance(i).value(att) == valList.get(j) && data.instance(i).classValue() == classValue) {
+                    attCount[j]++; 
+                }
+            }
+        }
+        Arrays.sort(attCount);
+        return valList.get(attCount[att.numValues() - 1]);
+    }
+    
+    // builds J48 tree classifier
     @Override
     public void buildClassifier(Instances data){
         //LALALALALALALA

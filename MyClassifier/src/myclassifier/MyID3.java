@@ -190,9 +190,9 @@ public class MyID3 extends Classifier {
     @Override
     public String toString() {
         if ((distribution == null) && (children == null)) {
-            return "MyID3: No DT model";
+            return "\nMyID3: No DT model";
         }
-        return "MyID3\n\n" + toString(0);
+        return "\nMyID3\n" + toString(0);
     }
     
     //Outputs a tree at a certain level

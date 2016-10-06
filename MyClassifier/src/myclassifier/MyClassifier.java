@@ -108,7 +108,7 @@ public class MyClassifier {
                     for (int i=0; i<unlabeled.numInstances(); ++i) {
                         double clsLabel = model.classifyInstance(unlabeled.instance(i));
                         labeled.instance(i).setClassValue(clsLabel);
-                        System.out.println(labeled.instance(i));
+                        // System.out.println(labeled.instance(i));
                     } 
                 }
                 Evaluation eval = new Evaluation(data);
