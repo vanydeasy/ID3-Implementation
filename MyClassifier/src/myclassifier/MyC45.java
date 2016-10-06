@@ -241,17 +241,23 @@ public class MyC45 extends Classifier {
                 Instances[] splitData;
                 if (splitAttr.isNumeric()) {
                     splitData = splitNumericData(data, splitAttr, threshold);
+                    children = new MyC45[2];
+                    for (int i=0; i<2; i++) {
+                        children[i] = new MyC45();
+                        children[i].buildTree(splitData[i]);
+                    }
                 } else {
                     splitData = splitNominalData(data, splitAttr);
-                }
-                children = new MyC45[splitAttr.numValues()];
-                for (int i=0; i<splitAttr.numValues(); i++) {
-                    children[i] = new MyC45();
-                    children[i].buildTree(splitData[i]);
+                    children = new MyC45[splitAttr.numValues()];
+                    for (int i=0; i<splitAttr.numValues(); i++) {
+                        children[i] = new MyC45();
+                        children[i].buildTree(splitData[i]);
+                    }
                 }
             }
         }
     }
+    
     // builds J48 tree classifier
     @Override
     public void buildClassifier(Instances data) throws Exception{
@@ -266,10 +272,16 @@ public class MyC45 extends Classifier {
     
     //classifies a given instance using the decision tree model
     @Override
-    public double classifyInstance(Instance instance) throws NoSupportForMissingValuesException {
+    public double classifyInstance(Instance instance){
         if (splitAttr == null) {
             return label;
         } else {
+            if (splitAttr.isNumeric()){
+                if (instance.value(splitAttr) <= threshold) {
+                    return children[0].classifyInstance(instance);
+                }
+                return children[1].classifyInstance(instance);
+            }
             return children[(int) instance.value(splitAttr)].classifyInstance(instance);
         }
     }
@@ -301,7 +313,7 @@ public class MyC45 extends Classifier {
                     j++;
                 }
                 result.append(splitAttr.name()).append(" <= ").append(threshold);
-//                result.append(children[0].toString(level+1));
+                result.append(children[0].toString(level+1));
                 
                 result.append("\n");
                 j=0;
@@ -310,7 +322,7 @@ public class MyC45 extends Classifier {
                     j++;
                 }
                 result.append(splitAttr.name()).append(" > ").append(threshold);
-//                result.append(children[1].toString(level+1));
+                result.append(children[1].toString(level+1));
             } else {
                 for (int i=0; i<splitAttr.numValues(); i++) {
                     result.append("\n");
