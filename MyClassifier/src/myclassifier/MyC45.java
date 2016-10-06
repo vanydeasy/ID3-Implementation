@@ -130,7 +130,10 @@ public class MyC45 extends Classifier {
     
     // Calculate threshold for numeric attributes
     private double calculateThreshold(Instances data, Attribute att) throws Exception {
-        data.sort(att);
+        // OPSI 1
+        // Sort berdasarkan nilai atribut, tiap batas pergantian kelas di split dan dihitung IGnya
+        // Dari semua kemungkinan tempat split, ambil yang IGnya paling besar
+        /* data.sort(att);
         double threshold = data.instance(0).value(att);
         double IG = 0;
         for (int i = 0; i < data.numInstances()-1; i++){
@@ -140,8 +143,26 @@ public class MyC45 extends Classifier {
                     threshold = data.instance(i).value(att);
                 }
             }
+        } 
+        return threshold; */
+        
+        // OPSI 2
+        // threshold = min+max/2
+        /* double min = data.instance(0).value(att);
+        double max = data.instance(0).value(att);
+        for (int i=1; i< data.numInstances(); i++) {
+            if (data.instance(i).value(att) < min) min = data.instance(i).value(att);
+            if (data.instance(i).value(att) > max) max = data.instance(i).value(att);
         }
-        return threshold;
+        return min+max/2; */
+        
+        // OPSI 3
+        // threshold = avg
+        double sum = 0;
+        for (int i=1; i< data.numInstances(); i++) {
+            sum += data.instance(i).value(att);
+        }
+        return sum/data.numInstances();
     }
     
     // Replace missing value with most common value of the attr among other examples with same target value 
