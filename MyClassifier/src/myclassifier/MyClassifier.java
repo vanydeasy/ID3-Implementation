@@ -14,11 +14,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
-import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.trees.Id3;
 import weka.classifiers.trees.J48;
 import weka.core.Attribute;
@@ -30,7 +27,6 @@ import weka.core.converters.ConverterUtils;
 import weka.filters.Filter;
 import weka.filters.supervised.instance.Resample;
 import weka.filters.unsupervised.attribute.Remove;
-import weka.filters.unsupervised.attribute.RemoveType;
 
 /**
  *
@@ -77,10 +73,10 @@ public class MyClassifier {
             
             // Choose classifier
             System.out.println("\nDecision Tree Classifiers\n-----------------");
-            System.out.println("1. ID3");
+            System.out.println("1. WEKA ID3");
             System.out.println("2. myID3");
-            System.out.println("3. J48");
-            System.out.println("4. myJ48");
+            System.out.println("3. WEKA J48");
+            System.out.println("4. myC45");
             System.out.print("Choose classifier: ");
             
             String input = new String(scan.nextLine());
@@ -91,7 +87,7 @@ public class MyClassifier {
             } else if (input.equals("3")) {
                 model = new J48();
             } else {
-                model = new J48();
+                model = new MyC45();
             }
             
             // 10-fold cross validation or Percentage split
@@ -103,7 +99,7 @@ public class MyClassifier {
                 // Build Classifier
                 model.buildClassifier(data);
                 System.out.println(model.toString());
-                if (input.equals("2")) { //MyID3
+                if (input.equals("2") || input.equals("4")) { //MyID3
                     Instances unlabeled = ConverterUtils.DataSource.read(filename);
                     unlabeled.setClassIndex(unlabeled.numAttributes() - 1);
                     Instances labeled = new Instances(unlabeled);
@@ -112,7 +108,7 @@ public class MyClassifier {
                     for (int i=0; i<unlabeled.numInstances(); ++i) {
                         double clsLabel = model.classifyInstance(unlabeled.instance(i));
                         labeled.instance(i).setClassValue(clsLabel);
-                        System.out.println(labeled.instance(i));
+                        // System.out.println(labeled.instance(i));
                     } 
                 }
                 Evaluation eval = new Evaluation(data);

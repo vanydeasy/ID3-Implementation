@@ -15,7 +15,6 @@ import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.NoSupportForMissingValuesException;
 import weka.core.Utils;
-import weka.core.converters.ConverterUtils;
 
 /**
  *
@@ -163,6 +162,7 @@ public class MyID3 extends Classifier {
     }
     
     //build ID3 classifier
+    @Override
     public void buildClassifier(Instances inst) throws Exception {
         //cek apakah data dapat dibuat classifier
         getCapabilities().testWithFail(inst);
@@ -190,9 +190,9 @@ public class MyID3 extends Classifier {
     @Override
     public String toString() {
         if ((distribution == null) && (children == null)) {
-            return "MyID3: No DT model";
+            return "\nMyID3: No DT model";
         }
-        return "MyID3\n\n" + toString(0);
+        return "\nMyID3\n" + toString(0);
     }
     
     //Outputs a tree at a certain level
