@@ -7,11 +7,15 @@ package myclassifier;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.List;
+import java.util.stream.DoubleStream;
 import weka.classifiers.Classifier;
 import weka.core.Attribute;
 import weka.core.Capabilities;
+import weka.core.Instance;
 import weka.core.Instances;
+import weka.core.NoSupportForMissingValuesException;
 import weka.core.Utils;
 
 /**
@@ -19,9 +23,14 @@ import weka.core.Utils;
  * @author Venny
  */
 public class MyC45 extends Classifier {
+    private final double MISSING_VALUE = Double.NaN;
+    private MyC45[] children; //node's successor
+    private double label; //class value if node is leaf
+    private Attribute splitAttr; //used for splitting
+    private Attribute classAttr; //class attribute of dataset
+    private double[] distribution; //class distribution for each label
     
     //returns default capabilities of the classifier
-    
     @Override
     public Capabilities getCapabilities() {
         Capabilities result = super.getCapabilities();
@@ -119,7 +128,7 @@ public class MyC45 extends Classifier {
     
     
     // Calculate threshold for numeric attributes
-    private double caculateThreshold(Instances data, Attribute att) throws Exception {
+    private double calculateThreshold(Instances data, Attribute att) throws Exception {
         data.sort(att);
         double threshold = data.instance(0).value(att);
         double IG = 0;
@@ -159,9 +168,108 @@ public class MyC45 extends Classifier {
         return valList.get(attCount[att.numValues() - 1]);
     }
     
+    //return the index with largest value from array
+    private int maxIndex(double[] array) {
+        double max=0;
+        int index=0;
+        if (array.length>0) {
+            for (int i=0; i<array.length; ++i) {
+                if (array[i]>max) {
+                    max=array[i];
+                    index=i;
+                }
+            }
+            return index;
+        } else {
+            return -1;
+        }
+    }
+    
+    // Creates an Id3 tree.
+    private void buildTree(Instances data) throws Exception {
+        //cek apakah terdapat instance yang dalam node ini
+        if (data.numInstances()==0) {
+            splitAttr = null;
+            label = MISSING_VALUE;
+            distribution = new double[data.numClasses()];
+        } else {
+            //jika ada, menghitung IG maksimum
+            double[] infoGains = new double[data.numAttributes()];
+            Enumeration attEnum = data.enumerateAttributes();
+            while (attEnum.hasMoreElements()) {
+                Attribute att = (Attribute) attEnum.nextElement();
+                if (att.isNumeric()) {
+                    double threshold = calculateThreshold(data, att);
+                    infoGains[att.index()] = computeNumericIG(data, att, threshold);
+                } else {
+                    infoGains[att.index()] = computeNominalIG(data, att);
+                }
+            }
+            //cek max IG
+            int maxIG = maxIndex(infoGains);
+            if (maxIG!=-1) { //kalo kosong
+                splitAttr = data.attribute(maxIndex(infoGains));
+            } else {
+                Exception exception = new Exception("array null");
+                throw exception;
+            }
+
+            //Membuat daun jika IG-nya 0
+            if (Double.compare(infoGains[splitAttr.index()], 0) == 0) {
+                splitAttr = null;
+                distribution = new double[data.numClasses()];
+                for (int i=0; i<data.numInstances(); ++i) {
+                    Instance inst = (Instance) data.instance(i);
+                    distribution[(int) inst.classValue()]++;
+                }
+                //normalisasi kelas distribusi
+                double sum = DoubleStream.of(distribution).sum();
+                if (!Double.isNaN(sum) && sum != 0) {
+                    for (int i=0; i<distribution.length; ++i) {
+                        distribution[i] /= sum;
+                    }
+                } else {
+                    Exception exception = new Exception("Class distribution: NaN or sum=0");
+                    throw exception;
+                }
+                label = maxIndex(distribution);
+                classAttr = data.classAttribute();
+            } else {
+                // Membuat tree baru di bawah node ini
+                Instances[] splitData;
+                if (splitAttr.isNumeric()) {
+                    double threshold = calculateThreshold(data, splitAttr);
+                    splitData = splitNumericData(data, splitAttr, threshold);
+                } else {
+                    splitData = splitNominalData(data, splitAttr);
+                }
+                children = new MyC45[splitAttr.numValues()];
+                for (int i=0; i<splitAttr.numValues(); i++) {
+                    children[i] = new MyC45();
+                    children[i].buildTree(splitData[i]);
+                }
+            }
+        }
+    }
     // builds J48 tree classifier
     @Override
-    public void buildClassifier(Instances data){
-        //LALALALALALALA
+    public void buildClassifier(Instances data) throws Exception{
+        //cek apakah data dapat dibuat classifier
+        getCapabilities().testWithFail(data);
+        
+        // Menghapus instances dengan missing class
+        data = new Instances(data);
+        data.deleteWithMissingClass();
+        buildTree(data);
+    }
+    
+    //classifies a given instance using the decision tree model
+    @Override
+    public double classifyInstance(Instance instance) throws NoSupportForMissingValuesException {
+        if (splitAttr == null) {
+            return label;
+        } else {
+            return children[(int) instance.value(splitAttr)].classifyInstance(instance);
+        }
     }
 }

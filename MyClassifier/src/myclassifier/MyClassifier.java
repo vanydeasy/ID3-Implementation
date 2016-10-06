@@ -76,7 +76,7 @@ public class MyClassifier {
             System.out.println("1. WEKA ID3");
             System.out.println("2. myID3");
             System.out.println("3. WEKA J48");
-            System.out.println("4. myJ48");
+            System.out.println("4. myC45");
             System.out.print("Choose classifier: ");
             
             String input = new String(scan.nextLine());
@@ -87,7 +87,7 @@ public class MyClassifier {
             } else if (input.equals("3")) {
                 model = new J48();
             } else {
-                model = new J48();
+                model = new MyC45();
             }
             
             // 10-fold cross validation or Percentage split
@@ -99,7 +99,7 @@ public class MyClassifier {
                 // Build Classifier
                 model.buildClassifier(data);
                 System.out.println(model.toString());
-                if (input.equals("2")) { //MyID3
+                if (input.equals("2") || input.equals("4")) { //MyID3
                     Instances unlabeled = ConverterUtils.DataSource.read(filename);
                     unlabeled.setClassIndex(unlabeled.numAttributes() - 1);
                     Instances labeled = new Instances(unlabeled);
