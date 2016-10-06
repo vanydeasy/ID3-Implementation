@@ -65,9 +65,10 @@ public class MyClassifier {
         System.out.print("Choose: ");
         if (scan.nextLine().equals("1")){ // Build Model
             // Resample instances
-            System.out.print("Want to resample (y/n)? ");
+            System.out.print("\nWant to resample (y/n)? ");
             if (scan.nextLine().equalsIgnoreCase("y")){
-                data = MyClassifier.filterResample(data);
+                System.out.print("Sample percentage (in %): ");
+                data = MyClassifier.filterResample(data, Double.parseDouble(scan.nextLine()));
                 System.out.print("Instances Resampled!\n");
             }
             
@@ -79,17 +80,34 @@ public class MyClassifier {
             System.out.println("4. myC45");
             System.out.print("Choose classifier: ");
             
-            String input = new String(scan.nextLine());
-            if (input.equals("1")){
-                model = new Id3();
-            } else if (input.equals("2")) {
-                model = new MyID3();
-            } else if (input.equals("3")) {
-                model = new J48();
-            } else {
-                model = new MyC45();
+            String input = scan.nextLine();
+            switch (input) {
+                case "2":
+                    model = new MyID3();
+                    break;
+                case "3":
+                    model = new J48();
+                    break;
+                case "4":
+                    model = new MyC45();
+                    break;
+                default:
+                    model = new Id3();
+                    break;
             }
             
+            if (input.equals("2") || input.equals("4")) { //MyID3 or MyC45
+                Instances unlabeled = ConverterUtils.DataSource.read(filename);
+                unlabeled.setClassIndex(unlabeled.numAttributes() - 1);
+                Instances labeled = new Instances(unlabeled);
+
+                // label instances
+                for (int i=0; i<unlabeled.numInstances(); ++i) {
+                    double clsLabel = model.classifyInstance(unlabeled.instance(i));
+                    labeled.instance(i).setClassValue(clsLabel);
+                    // System.out.println(labeled.instance(i));
+                } 
+            }
             // 10-fold cross validation or Percentage split
             System.out.println("\nEvaluation Method\n-----------------");
             System.out.println("1. 10-fold cross validation");
@@ -99,18 +117,7 @@ public class MyClassifier {
                 // Build Classifier
                 model.buildClassifier(data);
                 System.out.println(model.toString());
-                if (input.equals("2") || input.equals("4")) { //MyID3
-                    Instances unlabeled = ConverterUtils.DataSource.read(filename);
-                    unlabeled.setClassIndex(unlabeled.numAttributes() - 1);
-                    Instances labeled = new Instances(unlabeled);
-                    
-                    // label instances
-                    for (int i=0; i<unlabeled.numInstances(); ++i) {
-                        double clsLabel = model.classifyInstance(unlabeled.instance(i));
-                        labeled.instance(i).setClassValue(clsLabel);
-                        // System.out.println(labeled.instance(i));
-                    } 
-                }
+                
                 Evaluation eval = new Evaluation(data);
                 eval.crossValidateModel(model, data, 10, new Random());
                 System.out.println(eval.toSummaryString("\n10-Fold Cross Validation\n============", false));
@@ -144,20 +151,33 @@ public class MyClassifier {
             System.out.print("Model Loaded!\n");
         }
         
-        // Prediction using user input
-        System.out.println("\nClassify Unseen Instance\n-------------------------");
-        List<Attribute> attrNew = Collections.list(data.enumerateAttributes());
-        Instance predInst = new Instance(attrNew.size());
-        for(int i=0;i<attrNew.size();i++) {
-            System.out.print("Data "+attrNew.get(i).name()+": ");
-            if(attrNew.get(i).isNumeric())
-                predInst.setValue(attrNew.get(i),scan.nextDouble());
-            else
-                predInst.setValue(attrNew.get(i),scan.next());
+        // Test with given test set
+        System.out.print("Want to test model using a new test set (y/n)? ");
+        if (scan.nextLine().equalsIgnoreCase("y")){
+            System.out.print("filename: ");
+            Instances testSet = MyClassifier.loadData(scan.nextLine());
+            Evaluation eval = new Evaluation(testSet);
+            eval.evaluateModel(model, testSet);
+            System.out.println(eval.toSummaryString("\nTest Set Result\n============", false));
         }
-        predInst.setDataset(data);
-        String prediction = data.classAttribute().value((int)model.classifyInstance(predInst));
-        System.out.println("The predicted value of instance is "+prediction);
+        
+        // Prediction using user input
+        System.out.print("Want to predict an unseen instance (y/n)? ");
+        if (scan.nextLine().equalsIgnoreCase("y")){
+            System.out.println("\nClassify An Unseen Instance\n-------------------------");
+            List<Attribute> attrNew = Collections.list(data.enumerateAttributes());
+            Instance predInst = new Instance(attrNew.size());
+            for(int i=0;i<attrNew.size();i++) {
+                System.out.print("Data "+attrNew.get(i).name()+": ");
+                if(attrNew.get(i).isNumeric())
+                    predInst.setValue(attrNew.get(i),scan.nextDouble());
+                else
+                    predInst.setValue(attrNew.get(i),scan.next());
+            }
+            predInst.setDataset(data);
+            String prediction = data.classAttribute().value((int)model.classifyInstance(predInst));
+            System.out.println("The predicted value of instance is "+prediction);
+        }
     }
     
     public static Instances loadData(String filename) throws FileNotFoundException, IOException {
@@ -193,14 +213,14 @@ public class MyClassifier {
         return cls;
     }
     
-    public static Instances filterResample(Instances data) {
+    public static Instances filterResample(Instances data, double sampleSize) {
 	final Resample filter = new Resample();
 	Instances filteredIns = null;
 	filter.setBiasToUniformClass(1.0);
 	try {
 		filter.setInputFormat(data);
 		filter.setNoReplacement(false);
-		filter.setSampleSizePercent(100);
+		filter.setSampleSizePercent(sampleSize);
 		filteredIns = Filter.useFilter(data, filter);
 	} catch (Exception e) {
 		e.printStackTrace();
