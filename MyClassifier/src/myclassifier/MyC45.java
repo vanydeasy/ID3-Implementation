@@ -29,6 +29,7 @@ public class MyC45 extends Classifier {
     private Attribute splitAttr; //used for splitting
     private Attribute classAttr; //class attribute of dataset
     private double[] distribution; //class distribution for each label
+    private double threshold;
     
     //returns default capabilities of the classifier
     @Override
@@ -187,6 +188,7 @@ public class MyC45 extends Classifier {
     
     // Creates an Id3 tree.
     private void buildTree(Instances data) throws Exception {
+        handleMissingValue(data);
         //cek apakah terdapat instance yang dalam node ini
         if (data.numInstances()==0) {
             splitAttr = null;
@@ -199,7 +201,7 @@ public class MyC45 extends Classifier {
             while (attEnum.hasMoreElements()) {
                 Attribute att = (Attribute) attEnum.nextElement();
                 if (att.isNumeric()) {
-                    double threshold = calculateThreshold(data, att);
+                    threshold = calculateThreshold(data, att);
                     infoGains[att.index()] = computeNumericIG(data, att, threshold);
                 } else {
                     infoGains[att.index()] = computeNominalIG(data, att);
@@ -238,7 +240,6 @@ public class MyC45 extends Classifier {
                 // Membuat tree baru di bawah node ini
                 Instances[] splitData;
                 if (splitAttr.isNumeric()) {
-                    double threshold = calculateThreshold(data, splitAttr);
                     splitData = splitNumericData(data, splitAttr, threshold);
                 } else {
                     splitData = splitNominalData(data, splitAttr);
@@ -271,5 +272,59 @@ public class MyC45 extends Classifier {
         } else {
             return children[(int) instance.value(splitAttr)].classifyInstance(instance);
         }
+    }
+    
+    // Prints the decision tree using the private toString method from below.
+    @Override
+    public String toString() {
+        if ((distribution == null) && (children == null)) {
+            return "\nMyC45: No DT model";
+        }
+        return "\nMyC45\n" + toString(0);
+    }
+    
+    //Outputs a tree at a certain level
+    public String toString(int level) {
+        StringBuilder result = new StringBuilder();
+        if (splitAttr == null) {
+            if (Instance.isMissingValue(label)) {
+                result.append(": null");
+            } else {
+                result.append(": ").append(classAttr.value((int) label));
+            }
+        } else {
+            if (splitAttr.isNumeric()) {
+                result.append("\n");
+                int j=0;
+                while(j<level) {
+                    result.append("|  ");
+                    j++;
+                }
+                result.append(splitAttr.name()).append(" <= ").append(threshold);
+//                result.append(children[0].toString(level+1));
+                
+                result.append("\n");
+                j=0;
+                while(j<level) {
+                    result.append("|  ");
+                    j++;
+                }
+                result.append(splitAttr.name()).append(" > ").append(threshold);
+//                result.append(children[1].toString(level+1));
+            } else {
+                for (int i=0; i<splitAttr.numValues(); i++) {
+                    result.append("\n");
+
+                    int j=0;
+                    while(j<level) {
+                        result.append("|  ");
+                        j++;
+                    }
+                    result.append(splitAttr.name()).append(" = ").append(splitAttr.value(i));
+                    result.append(children[i].toString(level+1));
+                }
+            }
+        }
+        return result.toString();
     }
 }
