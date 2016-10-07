@@ -110,12 +110,15 @@ public class MyClassifier {
                     // System.out.println(labeled.instance(i));
                 } 
             }
+            
             // 10-fold cross validation or Percentage split
             System.out.println("\nEvaluation Method\n-----------------");
             System.out.println("1. 10-fold cross validation");
             System.out.println("2. Percentage split");
+            System.out.println("3. Full Training");
             System.out.print("Choose evaluation method: ");
-            if (scan.nextLine().equals("1")){
+            String evalMethod = scan.nextLine();
+            if (evalMethod.equals("1")){
                 // Build Classifier
                 model.buildClassifier(data);
                 System.out.println(model.toString());
@@ -123,7 +126,7 @@ public class MyClassifier {
                 Evaluation eval = new Evaluation(data);
                 eval.crossValidateModel(model, data, 10, new Random());
                 System.out.println(eval.toSummaryString("\n10-Fold Cross Validation\n============", false));
-            } else {
+            } else if(evalMethod.equals("2")) {
                 System.out.print("Training data percentage (in %): ");
                 int trainSize = (int) Math.round(data.numInstances() * Double.parseDouble(scan.nextLine())/100);
                 int testSize = data.numInstances() - trainSize;
@@ -137,6 +140,14 @@ public class MyClassifier {
                 Evaluation eval = new Evaluation(test);
                 eval.evaluateModel(model, test);
                 System.out.println(eval.toSummaryString("\nPercentage Split Validation\n============", false));
+            } else {
+                // Build Classifier
+                model.buildClassifier(data);
+                System.out.println(model.toString());
+                
+                Evaluation eval = new Evaluation(data);
+                eval.evaluateModel(model, data);
+                System.out.println(eval.toSummaryString("\nFull Training\n============", false));
             }
             
             // Save Model

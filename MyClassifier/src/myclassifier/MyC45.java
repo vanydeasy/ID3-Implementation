@@ -392,6 +392,7 @@ public class MyC45 extends Classifier {
                     }
                     Attribute tempSplitAttr = node.children[i].splitAttr;
                     Double tempLabel = node.children[i].label;
+                    
                     node.children[i].splitAttr = null;
                     // TODO: Label to pruned
                     node.children[i].label = MISSING_VALUE;
@@ -404,15 +405,12 @@ public class MyC45 extends Classifier {
                     }
                     System.out.println("PRUNED");
                     System.out.println(root.toString());
-                    //System.out.println("ERROR BEFORE PRUNING: "+errorBeforePruning);
-                    //System.out.println("ERROR AFTER PRUNING: "+errorAfterPruning);
 
                     if(errorBeforePruning < errorAfterPruning) {
                         node.children[i].splitAttr = tempSplitAttr;
                         node.children[i].label = tempLabel;
                     }
                 }
-                
                 pruning(root, node.children[i], test);
             }
         }
