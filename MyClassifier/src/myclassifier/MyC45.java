@@ -5,22 +5,20 @@
  */
 package myclassifier;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Random;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.DoubleStream;
 import weka.classifiers.Classifier;
-import weka.classifiers.Evaluation;
 import weka.core.Attribute;
 import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
-import weka.core.NoSupportForMissingValuesException;
 import weka.core.Utils;
 
 /**
@@ -295,11 +293,7 @@ public class MyC45 extends Classifier {
         data.deleteWithMissingClass();
         buildTree(data);
         
-        System.out.println("_______________");
-        System.out.println(this.toString());
-        System.out.println("_______________");
-        
-        //pruning(this,this,data);
+        pruning(this,this,data,data);
     }
     
     //classifies a given instance using the decision tree model
@@ -334,7 +328,8 @@ public class MyC45 extends Classifier {
             if (Instance.isMissingValue(label)) {
                 result.append(": null");
             } else {
-                result.append(": ").append(classAttr.value((int) label));
+                //result.append(": ").append(classAttr.value((int)label));
+                result.append(": ").append(label);
             }
         } else {
             if (splitAttr.isNumeric()) {
@@ -372,21 +367,19 @@ public class MyC45 extends Classifier {
         return result.toString();
     }
     
-    public void pruning(MyC45 root, MyC45 node, Instances test) {
+    public void pruning(MyC45 root, MyC45 node, Instances test, Instances filtered) {
         if(node.splitAttr == null) { // LEAF
             
         }
         else {
             for(int i=0;i<node.children.length;i++) {
                 if(node.children[i].splitAttr != null) { // If child not leaf
-                    System.out.println("ORIGINAL");
-                    System.out.println(root.toString());
                     
                     Double errorBeforePruning = 0.00;
                     Double errorAfterPruning = 0.00;
                     try {
                         // Calculating error 
-                        errorBeforePruning = calculateError(test)*1.00;
+                        errorBeforePruning = calculateError(test);
                     } catch (Exception ex) {
                         Logger.getLogger(MyC45.class.getName()).log(Level.SEVERE, null, ex);
                     }
@@ -395,42 +388,56 @@ public class MyC45 extends Classifier {
                     
                     node.children[i].splitAttr = null;
                     // TODO: Label to pruned
-                    node.children[i].label = MISSING_VALUE;
-                    
+                    node.children[i].label = maxLabelOnInstances(filtered).intValue();
                     try {
                         // Calculating error
-                        errorAfterPruning = calculateError(test)*1.00;
+                        errorAfterPruning = calculateError(test);
                     } catch (Exception ex) {
                         Logger.getLogger(MyC45.class.getName()).log(Level.SEVERE, null, ex);
                     }
                     System.out.println("PRUNED");
                     System.out.println(root.toString());
-
-                    if(errorBeforePruning < errorAfterPruning) {
+                    
+                    pruning(root, node.children[i], test, filterByAttributesValue(test,node.splitAttr, node.children[i].label));
+                    
+                    if(errorBeforePruning <= errorAfterPruning) {
                         node.children[i].splitAttr = tempSplitAttr;
                         node.children[i].label = tempLabel;
                     }
-                }
-                pruning(root, node.children[i], test);
+                }   
             }
         }
     }
     
-    public int calculateError(Instances test) {
+    public double calculateError(Instances test) {
         int incorrect = 0;
         for(int i=0;i<test.numInstances();i++) {
-            if(classifyInstance(test.instance(i)) != test.instance(i).classValue()) incorrect++;
+            if(classifyInstance(test.instance(i)) != test.instance(i).classValue()) {
+                incorrect++;
+            }
         }
+        System.out.println("INCORRECT: "+incorrect+"/"+test.numInstances());
         return incorrect/test.numInstances();
     }
     
     public Instances filterByAttributesValue(Instances instances, Attribute attr, Double label) {
         Instances filtered = new Instances(instances);
-        for(int i=0;i<instances.numInstances();i++) {
-            if(instances.instance(i).value(attr) != label) {
-                filtered.delete(i);
-            }
+        for(int i=0;i<filtered.numInstances();i++) {
+            if(instances.instance(i).value(attr) != label) filtered.delete(i);
         }
         return filtered;
+    }
+    
+    public Double maxLabelOnInstances(Instances instances) {
+        HashMap hm = new HashMap();
+        
+        for(int i=0;i<instances.numInstances();i++) {
+            int init = 0;
+            if(hm.get(instances.instance(i).stringValue(instances.numAttributes()-1)) != null) {
+                init = (int)hm.get(instances.instance(i).stringValue(instances.numAttributes()-1));
+            }
+            hm.put(instances.instance(i).value(instances.numAttributes()-1), init+1);
+        }
+        return (Double) Collections.max(hm.entrySet(), Map.Entry.comparingByValue()).getKey();
     }
 }
