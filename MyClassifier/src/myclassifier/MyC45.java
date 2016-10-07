@@ -177,17 +177,32 @@ public class MyC45 extends Classifier {
     }
     
     private double mostCommonValue (Instances data, Attribute att, Double classValue) {
-        List<Double> valList = Collections.list(att.enumerateValues());
-        int [] attCount = new int [att.numValues()];
-        for (int i = 0; i < data.numInstances(); i++) {
-            for (int j = 0; j < att.numValues(); j++) {
-                if (data.instance(i).value(att) == valList.get(j) && data.instance(i).classValue() == classValue) {
-                    attCount[j]++; 
+        if (att.isNumeric()) {
+            double sum = 0;
+            for (int i=1; i< data.numInstances(); i++) {
+                sum += data.instance(i).value(att);
+            }
+            return sum/data.numInstances();
+        } else {
+            List<String> valList = Collections.list(att.enumerateValues());
+            int [] attCount = new int [att.numValues()];
+            for (int i = 0; i < data.numInstances(); i++) {
+                for (int j = 0; j < att.numValues(); j++) {
+                    if (!data.instance(i).isMissing(att)) {
+                        if (data.instance(i).stringValue(att).equals(valList.get(j)) && data.instance(i).classValue() == classValue) {
+                            attCount[j]++; 
+                        }
+                    }
                 }
             }
+            int maxIndex = 0;
+            int max = attCount[0];
+            for (int j = 1; j < attCount.length; j++){
+               if (attCount[j] > max) maxIndex = j;
+            }
+            System.out.println(valList.get(maxIndex));
+            return att.indexOfValue(valList.get(maxIndex));
         }
-        Arrays.sort(attCount);
-        return valList.get(attCount[att.numValues() - 1]);
     }
     
     //return the index with largest value from array
@@ -236,7 +251,6 @@ public class MyC45 extends Classifier {
                 Exception exception = new Exception("array null");
                 throw exception;
             }
-
             //Membuat daun jika IG-nya 0
             if (Double.compare(infoGains[splitAttr.index()], 0) == 0) {
                 splitAttr = null;
