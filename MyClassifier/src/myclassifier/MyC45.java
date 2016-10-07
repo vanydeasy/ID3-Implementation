@@ -5,12 +5,17 @@
  */
 package myclassifier;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.DoubleStream;
 import weka.classifiers.Classifier;
+import weka.classifiers.Evaluation;
 import weka.core.Attribute;
 import weka.core.Capabilities;
 import weka.core.Instance;
@@ -303,6 +308,12 @@ public class MyC45 extends Classifier {
         data = new Instances(data);
         data.deleteWithMissingClass();
         buildTree(data);
+        
+        System.out.println("_______________");
+        System.out.println(this.toString());
+        System.out.println("_______________");
+        
+        //pruning(this,this,data);
     }
     
     //classifies a given instance using the decision tree model
@@ -373,5 +384,67 @@ public class MyC45 extends Classifier {
             }
         }
         return result.toString();
+    }
+    
+    public void pruning(MyC45 root, MyC45 node, Instances test) {
+        if(node.splitAttr == null) { // LEAF
+            
+        }
+        else {
+            for(int i=0;i<node.children.length;i++) {
+                if(node.children[i].splitAttr != null) { // If child not leaf
+                    System.out.println("ORIGINAL");
+                    System.out.println(root.toString());
+                    
+                    Double errorBeforePruning = 0.00;
+                    Double errorAfterPruning = 0.00;
+                    try {
+                        // Calculating error 
+                        errorBeforePruning = calculateError(test)*1.00;
+                    } catch (Exception ex) {
+                        Logger.getLogger(MyC45.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                    Attribute tempSplitAttr = node.children[i].splitAttr;
+                    Double tempLabel = node.children[i].label;
+                    
+                    node.children[i].splitAttr = null;
+                    // TODO: Label to pruned
+                    node.children[i].label = MISSING_VALUE;
+                    
+                    try {
+                        // Calculating error
+                        errorAfterPruning = calculateError(test)*1.00;
+                    } catch (Exception ex) {
+                        Logger.getLogger(MyC45.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                    System.out.println("PRUNED");
+                    System.out.println(root.toString());
+
+                    if(errorBeforePruning < errorAfterPruning) {
+                        node.children[i].splitAttr = tempSplitAttr;
+                        node.children[i].label = tempLabel;
+                    }
+                }
+                pruning(root, node.children[i], test);
+            }
+        }
+    }
+    
+    public int calculateError(Instances test) {
+        int incorrect = 0;
+        for(int i=0;i<test.numInstances();i++) {
+            if(classifyInstance(test.instance(i)) != test.instance(i).classValue()) incorrect++;
+        }
+        return incorrect/test.numInstances();
+    }
+    
+    public Instances filterByAttributesValue(Instances instances, Attribute attr, Double label) {
+        Instances filtered = new Instances(instances);
+        for(int i=0;i<instances.numInstances();i++) {
+            if(instances.instance(i).value(attr) != label) {
+                filtered.delete(i);
+            }
+        }
+        return filtered;
     }
 }

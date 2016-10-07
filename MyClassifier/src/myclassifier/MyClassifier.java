@@ -14,6 +14,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.classifiers.trees.Id3;
@@ -108,12 +110,15 @@ public class MyClassifier {
                     // System.out.println(labeled.instance(i));
                 } 
             }
+            
             // 10-fold cross validation or Percentage split
             System.out.println("\nEvaluation Method\n-----------------");
             System.out.println("1. 10-fold cross validation");
             System.out.println("2. Percentage split");
+            System.out.println("3. Full Training");
             System.out.print("Choose evaluation method: ");
-            if (scan.nextLine().equals("1")){
+            String evalMethod = scan.nextLine();
+            if (evalMethod.equals("1")){
                 // Build Classifier
                 model.buildClassifier(data);
                 System.out.println(model.toString());
@@ -121,7 +126,7 @@ public class MyClassifier {
                 Evaluation eval = new Evaluation(data);
                 eval.crossValidateModel(model, data, 10, new Random());
                 System.out.println(eval.toSummaryString("\n10-Fold Cross Validation\n============", false));
-            } else {
+            } else if(evalMethod.equals("2")) {
                 System.out.print("Training data percentage (in %): ");
                 int trainSize = (int) Math.round(data.numInstances() * Double.parseDouble(scan.nextLine())/100);
                 int testSize = data.numInstances() - trainSize;
@@ -135,6 +140,14 @@ public class MyClassifier {
                 Evaluation eval = new Evaluation(test);
                 eval.evaluateModel(model, test);
                 System.out.println(eval.toSummaryString("\nPercentage Split Validation\n============", false));
+            } else {
+                // Build Classifier
+                model.buildClassifier(data);
+                System.out.println(model.toString());
+                
+                Evaluation eval = new Evaluation(data);
+                eval.evaluateModel(model, data);
+                System.out.println(eval.toSummaryString("\nFull Training\n============", false));
             }
             
             // Save Model
@@ -226,5 +239,28 @@ public class MyClassifier {
 		e.printStackTrace();
 	}
 	return filteredIns;
+    }
+    
+    public static void predictInstance(Instances data, Classifier model) {
+        System.out.println("\nClassify Unseen Instance\n-------------------------");
+        
+        Scanner scan = new Scanner(System.in);
+        List<Attribute> attrNew = Collections.list(data.enumerateAttributes());
+        Instance predInst = new Instance(attrNew.size());
+        
+        for(int i=0;i<attrNew.size();i++) {
+            System.out.print("Data "+attrNew.get(i).name()+": ");
+            if(attrNew.get(i).isNumeric())
+                predInst.setValue(attrNew.get(i),scan.nextDouble());
+            else
+                predInst.setValue(attrNew.get(i),scan.next());
+        }
+        predInst.setDataset(data);
+        try {
+            String prediction = data.classAttribute().value((int)model.classifyInstance(predInst));
+            System.out.println("The predicted value of instance is "+prediction);
+        } catch (Exception ex) {
+            Logger.getLogger(MyClassifier.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 }
