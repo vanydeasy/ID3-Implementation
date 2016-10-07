@@ -5,7 +5,6 @@
  */
 package myclassifier;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -15,6 +14,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.DoubleStream;
 import weka.classifiers.Classifier;
+import weka.classifiers.Evaluation;
 import weka.core.Attribute;
 import weka.core.Capabilities;
 import weka.core.Instance;
@@ -136,7 +136,7 @@ public class MyC45 extends Classifier {
         // OPSI 1
         // Sort berdasarkan nilai atribut, tiap batas pergantian kelas di split dan dihitung IGnya
         // Dari semua kemungkinan tempat split, ambil yang IGnya paling besar
-        /* data.sort(att);
+        data.sort(att);
         double threshold = data.instance(0).value(att);
         double IG = 0;
         for (int i = 0; i < data.numInstances()-1; i++){
@@ -147,7 +147,7 @@ public class MyC45 extends Classifier {
                 }
             }
         } 
-        return threshold; */
+        return threshold;
         
         // OPSI 2
         // threshold = min+max/2
@@ -161,11 +161,23 @@ public class MyC45 extends Classifier {
         
         // OPSI 3
         // threshold = avg
-        double sum = 0;
+        /* double sum = 0;
         for (int i=1; i< data.numInstances(); i++) {
             sum += data.instance(i).value(att);
         }
-        return sum/data.numInstances();
+        return sum/data.numInstances(); */
+    }
+    
+    private double[] attributeThreshold(Instances data) throws Exception {
+        double[] th = new double[data.numAttributes()];
+        for (int i = 0; i< data.numAttributes(); i++) {
+            if (data.attribute(i).isNumeric()) {
+                th[i] = calculateThreshold(data, data.attribute(i));
+            } else {
+                th[i] = 0;
+            }
+        }
+        return th;
     }
     
     // Replace missing value with most common value of the attr among other examples with same target value 
@@ -180,17 +192,32 @@ public class MyC45 extends Classifier {
     }
     
     private double mostCommonValue (Instances data, Attribute att, Double classValue) {
-        List<Double> valList = Collections.list(att.enumerateValues());
-        int [] attCount = new int [att.numValues()];
-        for (int i = 0; i < data.numInstances(); i++) {
-            for (int j = 0; j < att.numValues(); j++) {
-                if (data.instance(i).value(att) == valList.get(j) && data.instance(i).classValue() == classValue) {
-                    attCount[j]++; 
+        if (att.isNumeric()) {
+            double sum = 0;
+            for (int i=1; i< data.numInstances(); i++) {
+                sum += data.instance(i).value(att);
+            }
+            return sum/data.numInstances();
+        } else {
+            List<String> valList = Collections.list(att.enumerateValues());
+            int [] attCount = new int [att.numValues()];
+            for (int i = 0; i < data.numInstances(); i++) {
+                for (int j = 0; j < att.numValues(); j++) {
+                    if (!data.instance(i).isMissing(att)) {
+                        if (data.instance(i).stringValue(att).equals(valList.get(j)) && data.instance(i).classValue() == classValue) {
+                            attCount[j]++; 
+                        }
+                    }
                 }
             }
+            int maxIndex = 0;
+            int max = attCount[0];
+            for (int j = 1; j < attCount.length; j++){
+               if (attCount[j] > max) maxIndex = j;
+            }
+            System.out.println(valList.get(maxIndex));
+            return att.indexOfValue(valList.get(maxIndex));
         }
-        Arrays.sort(attCount);
-        return valList.get(attCount[att.numValues() - 1]);
     }
     
     //return the index with largest value from array
@@ -220,13 +247,13 @@ public class MyC45 extends Classifier {
             distribution = new double[data.numClasses()];
         } else {
             //jika ada, menghitung IG maksimum
+            double[] th = attributeThreshold(data);
             double[] infoGains = new double[data.numAttributes()];
             Enumeration attEnum = data.enumerateAttributes();
             while (attEnum.hasMoreElements()) {
                 Attribute att = (Attribute) attEnum.nextElement();
                 if (att.isNumeric()) {
-                    threshold = calculateThreshold(data, att);
-                    infoGains[att.index()] = computeNumericIG(data, att, threshold);
+                    infoGains[att.index()] = computeNumericIG(data, att, th[att.index()]);
                 } else {
                     infoGains[att.index()] = computeNominalIG(data, att);
                 }
@@ -234,12 +261,12 @@ public class MyC45 extends Classifier {
             //cek max IG
             int maxIG = maxIndex(infoGains);
             if (maxIG!=-1) { //kalo kosong
-                splitAttr = data.attribute(maxIndex(infoGains));
+                splitAttr = data.attribute(maxIG);
+                threshold = th[maxIG];
             } else {
                 Exception exception = new Exception("array null");
                 throw exception;
             }
-
             //Membuat daun jika IG-nya 0
             if (Double.compare(infoGains[splitAttr.index()], 0) == 0) {
                 splitAttr = null;
@@ -288,12 +315,11 @@ public class MyC45 extends Classifier {
         //cek apakah data dapat dibuat classifier
         getCapabilities().testWithFail(data);
         
-        // Menghapus instances dengan missing class
-        data = new Instances(data);
-        data.deleteWithMissingClass();
         buildTree(data);
         
-        pruning(this,this,data,data);
+        System.out.println(this.toString());
+
+        pruning(this,this,data);
     }
     
     //classifies a given instance using the decision tree model
@@ -367,76 +393,69 @@ public class MyC45 extends Classifier {
         return result.toString();
     }
     
-    public void pruning(MyC45 root, MyC45 node, Instances test, Instances filtered) {
-        if(node.splitAttr == null) { // LEAF
+    public void pruning(MyC45 root, MyC45 node, Instances test) {
+        Double errorBeforePruning = 0.00;
+        Double errorAfterPruning = 0.00;
+        
+        try {
+            Evaluation eval = new Evaluation(test);
+            try {
+                // Calculating error
+                eval.evaluateModel(this, test);
+                errorBeforePruning = eval.errorRate();
+            } catch (Exception ex) {
+                Logger.getLogger(MyC45.class.getName()).log(Level.SEVERE, null, ex);
+            }
             
-        }
-        else {
-            for(int i=0;i<node.children.length;i++) {
-                if(node.children[i].splitAttr != null) { // If child not leaf
-                    
-                    Double errorBeforePruning = 0.00;
-                    Double errorAfterPruning = 0.00;
-                    try {
-                        // Calculating error 
-                        errorBeforePruning = calculateError(test);
-                    } catch (Exception ex) {
-                        Logger.getLogger(MyC45.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                    Attribute tempSplitAttr = node.children[i].splitAttr;
-                    Double tempLabel = node.children[i].label;
-                    
-                    node.children[i].splitAttr = null;
-                    // TODO: Label to pruned
-                    node.children[i].label = maxLabelOnInstances(filtered).intValue();
-                    try {
-                        // Calculating error
-                        errorAfterPruning = calculateError(test);
-                    } catch (Exception ex) {
-                        Logger.getLogger(MyC45.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                    System.out.println("PRUNED");
-                    System.out.println(root.toString());
-                    
-                    pruning(root, node.children[i], test, filterByAttributesValue(test,node.splitAttr, node.children[i].label));
-                    
-                    if(errorBeforePruning <= errorAfterPruning) {
-                        node.children[i].splitAttr = tempSplitAttr;
-                        node.children[i].label = tempLabel;
-                    }
-                }   
+            if(node.splitAttr == null) { // LEAF
+                
             }
-        }
-    }
-    
-    public double calculateError(Instances test) {
-        int incorrect = 0;
-        for(int i=0;i<test.numInstances();i++) {
-            if(classifyInstance(test.instance(i)) != test.instance(i).classValue()) {
-                incorrect++;
+            else {
+                for(int i=0;i<node.children.length;i++) {
+                    if(node.children[i].splitAttr != null) { // If child not leaf
+                        Attribute tempSplitAttr = node.children[i].splitAttr;
+                        Double tempLabel = node.children[i].label;
+                        
+                        // PRUNE THE TREE
+                        node.children[i].splitAttr = null;
+                        node.children[i].label = maxLabelOnInstances(test).intValue();
+                        
+                        try {
+                            // Calculating error
+                            eval.evaluateModel(this, test);
+                            errorAfterPruning = eval.errorRate();
+                        } catch (Exception ex) {
+                            Logger.getLogger(MyC45.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                        System.out.println("Before: "+errorBeforePruning+" | After: "+errorAfterPruning);
+                        if(errorBeforePruning <= errorAfterPruning) { // Back to init
+                            System.out.println("Back to init");
+                            node.children[i].splitAttr = tempSplitAttr;
+                            node.children[i].label = tempLabel;
+                        }
+                        else {
+                            eval.evaluateModel(this, test);
+                            errorBeforePruning = eval.errorRate();
+                        }
+                    }
+                    pruning(root, node.children[i], test);
+                }  
             }
+        } catch (Exception ex) {
+            Logger.getLogger(MyC45.class.getName()).log(Level.SEVERE, null, ex);
         }
-        System.out.println("INCORRECT: "+incorrect+"/"+test.numInstances());
-        return incorrect/test.numInstances();
-    }
-    
-    public Instances filterByAttributesValue(Instances instances, Attribute attr, Double label) {
-        Instances filtered = new Instances(instances);
-        for(int i=0;i<filtered.numInstances();i++) {
-            if(instances.instance(i).value(attr) != label) filtered.delete(i);
-        }
-        return filtered;
     }
     
     public Double maxLabelOnInstances(Instances instances) {
+        Instances newInst = new Instances(instances);
         HashMap hm = new HashMap();
         
-        for(int i=0;i<instances.numInstances();i++) {
+        for(int i=0;i<newInst.numInstances();i++) {
             int init = 0;
-            if(hm.get(instances.instance(i).stringValue(instances.numAttributes()-1)) != null) {
-                init = (int)hm.get(instances.instance(i).stringValue(instances.numAttributes()-1));
+            if(hm.get(newInst.instance(i).stringValue(newInst.numAttributes()-1)) != null) {
+                init = (int)hm.get(newInst.instance(i).stringValue(newInst.numAttributes()-1));
             }
-            hm.put(instances.instance(i).value(instances.numAttributes()-1), init+1);
+            hm.put(newInst.instance(i).value(newInst.numAttributes()-1), init+1);
         }
         return (Double) Collections.max(hm.entrySet(), Map.Entry.comparingByValue()).getKey();
     }
