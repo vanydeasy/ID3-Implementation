@@ -9,7 +9,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -138,7 +140,7 @@ public class MyC45 extends Classifier {
         // OPSI 1
         // Sort berdasarkan nilai atribut, tiap batas pergantian kelas di split dan dihitung IGnya
         // Dari semua kemungkinan tempat split, ambil yang IGnya paling besar
-        /* data.sort(att);
+        data.sort(att);
         double threshold = data.instance(0).value(att);
         double IG = 0;
         for (int i = 0; i < data.numInstances()-1; i++){
@@ -149,7 +151,7 @@ public class MyC45 extends Classifier {
                 }
             }
         } 
-        return threshold; */
+        return threshold;
         
         // OPSI 2
         // threshold = min+max/2
@@ -163,11 +165,23 @@ public class MyC45 extends Classifier {
         
         // OPSI 3
         // threshold = avg
-        double sum = 0;
+        /* double sum = 0;
         for (int i=1; i< data.numInstances(); i++) {
             sum += data.instance(i).value(att);
         }
-        return sum/data.numInstances();
+        return sum/data.numInstances(); */
+    }
+    
+    private double[] attributeThreshold(Instances data) throws Exception {
+        double[] th = new double[data.numAttributes()];
+        for (int i = 0; i< data.numAttributes(); i++) {
+            if (data.attribute(i).isNumeric()) {
+                th[i] = calculateThreshold(data, data.attribute(i));
+            } else {
+                th[i] = 0;
+            }
+        }
+        return th;
     }
     
     // Replace missing value with most common value of the attr among other examples with same target value 
@@ -237,13 +251,13 @@ public class MyC45 extends Classifier {
             distribution = new double[data.numClasses()];
         } else {
             //jika ada, menghitung IG maksimum
+            double[] th = attributeThreshold(data);
             double[] infoGains = new double[data.numAttributes()];
             Enumeration attEnum = data.enumerateAttributes();
             while (attEnum.hasMoreElements()) {
                 Attribute att = (Attribute) attEnum.nextElement();
                 if (att.isNumeric()) {
-                    threshold = calculateThreshold(data, att);
-                    infoGains[att.index()] = computeNumericIG(data, att, threshold);
+                    infoGains[att.index()] = computeNumericIG(data, att, th[att.index()]);
                 } else {
                     infoGains[att.index()] = computeNominalIG(data, att);
                 }
@@ -251,7 +265,8 @@ public class MyC45 extends Classifier {
             //cek max IG
             int maxIG = maxIndex(infoGains);
             if (maxIG!=-1) { //kalo kosong
-                splitAttr = data.attribute(maxIndex(infoGains));
+                splitAttr = data.attribute(maxIG);
+                threshold = th[maxIG];
             } else {
                 Exception exception = new Exception("array null");
                 throw exception;
@@ -304,15 +319,7 @@ public class MyC45 extends Classifier {
         //cek apakah data dapat dibuat classifier
         getCapabilities().testWithFail(data);
         
-        // Menghapus instances dengan missing class
-        data = new Instances(data);
-        data.deleteWithMissingClass();
         buildTree(data);
-        
-        System.out.println("_______________");
-        System.out.println(this.toString());
-        System.out.println("_______________");
-        
         //pruning(this,this,data);
     }
     
