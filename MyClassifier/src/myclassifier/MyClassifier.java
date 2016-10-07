@@ -55,8 +55,11 @@ public class MyClassifier {
         }
         System.out.print("Want to remove attribute (y/n)? ");
         if (scan.nextLine().equalsIgnoreCase("y")){
-            System.out.print("Attribute to be removed: ");
-            data = MyClassifier.removeAttribute(data, scan.nextLine());
+            System.out.print("Attribute to be removed (seperate with space): ");
+            String[] removed = scan.nextLine().split(" ");
+            for (String r: removed) {
+                data = MyClassifier.removeAttribute(data, r);
+            }
         }
         
         // Build or Load model
