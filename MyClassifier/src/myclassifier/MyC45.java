@@ -316,8 +316,6 @@ public class MyC45 extends Classifier {
         getCapabilities().testWithFail(data);
         
         buildTree(data);
-        
-        System.out.println(this.toString());
 
         pruning(this,this,data);
     }
@@ -394,13 +392,15 @@ public class MyC45 extends Classifier {
     }
     
     public void pruning(MyC45 root, MyC45 node, Instances test) {
+        // Compare the tree before and after pruning
+        // If the error afterwards is smaller, the pruned tree is used
         Double errorBeforePruning = 0.00;
         Double errorAfterPruning = 0.00;
         
         try {
             Evaluation eval = new Evaluation(test);
             try {
-                // Calculating error
+                // Calculating error before pruning
                 eval.evaluateModel(this, test);
                 errorBeforePruning = eval.errorRate();
             } catch (Exception ex) {
@@ -408,7 +408,7 @@ public class MyC45 extends Classifier {
             }
             
             if(node.splitAttr == null) { // LEAF
-                
+                // STOP
             }
             else {
                 for(int i=0;i<node.children.length;i++) {
@@ -421,15 +421,13 @@ public class MyC45 extends Classifier {
                         node.children[i].label = maxLabelOnInstances(test).intValue();
                         
                         try {
-                            // Calculating error
+                            // Calculating error after pruning
                             eval.evaluateModel(this, test);
                             errorAfterPruning = eval.errorRate();
                         } catch (Exception ex) {
                             Logger.getLogger(MyC45.class.getName()).log(Level.SEVERE, null, ex);
                         }
-                        System.out.println("Before: "+errorBeforePruning+" | After: "+errorAfterPruning);
-                        if(errorBeforePruning <= errorAfterPruning) { // Back to init
-                            System.out.println("Back to init");
+                        if(errorBeforePruning <= errorAfterPruning) { // Back to initial tree
                             node.children[i].splitAttr = tempSplitAttr;
                             node.children[i].label = tempLabel;
                         }
