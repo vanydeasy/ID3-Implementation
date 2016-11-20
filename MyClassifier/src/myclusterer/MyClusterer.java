@@ -3,10 +3,11 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package myclassifier;
+package myclusterer;
 
 import java.io.IOException;
 import java.util.Scanner;
+import myclassifier.MyClassifier;
 import weka.core.Instances;
 
 /**
