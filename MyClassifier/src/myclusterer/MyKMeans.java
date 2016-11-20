@@ -27,13 +27,15 @@ public class MyKMeans implements Clusterer, CapabilitiesHandler {
     public void buildClusterer(Instances instances) throws Exception {
         // INITIALIZATION:
         boolean convergence = false;
-        int numIterations = 0;
+        int numIterations = 1;
+        
         // Pick centroids randomly
         
-        // While convergence == false AND numIterations < maxIterations
+        while (convergence == false && numIterations < maxIterations) {
             // ASSIGNMENT:
-            // For each instances as i
+            for (int i = 0; i < instances.numInstances(); i++) {
                 // clusterInstance(i)
+            }   
 
             // UPDATE CENTROID:
             // For each cluster
@@ -41,19 +43,23 @@ public class MyKMeans implements Clusterer, CapabilitiesHandler {
             // If old centroids = new centroids
                 // convergence = true;
             
+            numIterations++;
+        }
+            
     }
 
     @Override
     public int clusterInstance(Instance instance) throws Exception {
-        int centroid = 0;
+        int centroidIdx = 0;
         double distance = 0;
-        // For each centroids
-            // Calculate distance
-            // if current distance < prev distance
-                // centroid = current centroid
-                // distance = current distance
-        
-        return centroid;
+        for (int i = 0; i < centroids.numInstances(); i++) {
+            double currentDistance = distanceFunction.distance(centroids.instance(i), instance);
+            if (currentDistance < distance) {
+                distance = currentDistance;
+                centroidIdx = i;
+            }
+        }
+        return centroidIdx;
     }
 
     @Override
