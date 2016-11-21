@@ -5,6 +5,7 @@
  */
 package myclusterer;
 
+import java.util.Random;
 import weka.clusterers.*;
 import weka.core.Capabilities;
 import weka.core.CapabilitiesHandler;
@@ -22,24 +23,46 @@ public class MyKMeans implements Clusterer, CapabilitiesHandler {
     private int numClusters = 2;
     private int maxIterations = 500;
     private Instances centroids = null;
+    private int[] assignment = null;
     
     @Override
     public void buildClusterer(Instances instances) throws Exception {
         // INITIALIZATION:
         boolean convergence = false;
         int numIterations = 1;
+        centroids = new Instances(instances, 3);
+        assignment = new int[instances.numInstances()];
+        Instances[] clusters = new Instances[numClusters];
         
-        // Pick centroids randomly
+        for (int i = 0; i < numClusters; i++) {
+            clusters[i] = new Instances(instances, instances.numInstances());
+            
+            // Pick centroids randomly
+            Random rand = new Random();
+            int randomNum = rand.nextInt(instances.numAttributes());
+            centroids.add(instances.instance(randomNum));
+        }
         
         while (convergence == false && numIterations < maxIterations) {
             // ASSIGNMENT:
             for (int i = 0; i < instances.numInstances(); i++) {
-                // clusterInstance(i)
-            }   
+                assignment[i] = clusterInstance(instances.instance(i));
+                clusters[assignment[i]].add(instances.instance(i));
+            }
 
             // UPDATE CENTROID:
-            // For each cluster
-                // Calculate new centroid
+            for (int i = 0; i < numClusters; i++) { // for each cluster
+                double[] attrAverage = new double[clusters[i].numAttributes()];
+                for (int j = 0; j < clusters[i].numAttributes(); j++) { // for each attribute
+                    if (clusters[i].attribute(j).isNumeric()) { // if attribute is numeric calculate mean
+                        attrAverage[j] = clusters[i].attributeStats(j).numericStats.mean;
+                    } else if (clusters[i].attribute(j).isNominal()) { // if attribute is nominal find modes
+                        int[] values = clusters[i].attributeStats(j).nominalCounts;
+                        // cari index di mana value max
+                        // attrAverage = index tersebut
+                    }
+                }
+            }   
             // If old centroids = new centroids
                 // convergence = true;
             
