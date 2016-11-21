@@ -5,6 +5,8 @@
  */
 package myclusterer;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import weka.clusterers.*;
 import weka.core.Capabilities;
 import weka.core.DistanceFunction;
@@ -20,19 +22,47 @@ import weka.core.Instances;
  */
 public class MyAgnes implements Clusterer {
     private DistanceFunction distanceFunction = null;
-    private int[] dataCluster = null;
     private int numClusters = 2;
+    private String linkType = "SINGLE";
+    private ArrayList<ArrayList<ArrayList<Instance>>> dendogram = new ArrayList<>();
     
     @Override
     public void buildClusterer(Instances instances) throws Exception {
         distanceFunction = new EuclideanDistance(instances);
         // Initiate all clusters (one cluster per instance)
-        dataCluster = new int[instances.numInstances()];
-        for(int i=0;i<instances.numInstances();i++) dataCluster[i] = i;
+        ArrayList<ArrayList<Instance>> firstIteration = new ArrayList<>();
+        for(int i=0; i < instances.numInstances(); i++) {
+            ArrayList<Instance> cluster = new ArrayList<>();
+            cluster.add(instances.instance(i));
+            firstIteration.add(cluster);
+        }
+        dendogram.add(firstIteration);
         
-        double[][] distance = countDistance(instances);
-        
-        
+        while(dendogram.get(dendogram.size()-1).size() > numClusters) {
+            System.out.println("--------- #"+dendogram.size()+" ---------");
+            ArrayList<ArrayList<Instance>> lastIteration = dendogram.get(dendogram.size()-1);
+            double[][] distances = countDistance(lastIteration);
+            double minDistance = Arrays.stream(distances)
+                .flatMapToDouble(a -> Arrays.stream(a))
+                .min()
+                .getAsDouble();
+            
+            System.out.println("Minimum distance: "+minDistance);
+            ArrayList<ArrayList<Instance>> updated = new ArrayList<>();
+            for (int i = 0; i < lastIteration.size(); i++) {
+                ArrayList<Instance> cluster = new ArrayList<>(lastIteration.get(i));
+                for (int j = i + 1; j < lastIteration.size(); j++) {
+                    System.out.println(">> "+i+","+j+"\t"+lastIteration.get(i)+" "+lastIteration.get(j));
+                    if(distances[i][j] == minDistance) {
+                        cluster.addAll(lastIteration.get(j));
+                    }
+                }
+                updated.add(cluster);
+            }
+            dendogram.add(updated);
+            
+            for(int i=0;i<updated.size();i++) System.out.println(i+1+"\t"+updated.get(i));
+        }
     }
 
     @Override
@@ -67,16 +97,32 @@ public class MyAgnes implements Clusterer {
         numClusters = num;
     }
     
-    public double[][] countDistance(Instances instances) {
-        int nInstances = instances.numInstances();
+    public void setLinkType(String linkType) {
+        this.linkType = linkType;
+    }
+    
+    public double[][] countDistance(ArrayList<ArrayList<Instance>> instances) {
+        int nClusters = instances.size();
         double[][] distanceMatrix = null;
-        distanceMatrix = new double[nInstances][nInstances];
+        distanceMatrix = new double[nClusters][nClusters];
         
-        for (int i = 0; i < nInstances; i++) {
-            distanceMatrix[i][i] = 0;
-            for (int j = i + 1; j < nInstances; j++) {
-                distanceMatrix[i][j] = distanceFunction.distance(instances.instance(i), instances.instance(j));
-                distanceMatrix[j][i] = distanceMatrix[i][j];
+        for (int i = 0; i < nClusters; i++) {
+            distanceMatrix[i][i] = Double.POSITIVE_INFINITY;
+            for (int j = i + 1; j < nClusters; j++) {
+                distanceMatrix[i][j] = distanceFunction.distance(instances.get(i).get(0), instances.get(j).get(0));
+                for(int k = 0; k < instances.get(i).size(); k++) {
+                    for(int l = 0; l < instances.get(j).size(); l++) {
+                        double dist = distanceFunction.distance(instances.get(i).get(k), instances.get(j).get(l));
+                        if(linkType.equals("SINGLE")) {
+                            if(dist < distanceMatrix[i][j]) distanceMatrix[i][j] = dist; 
+                        }
+                        else if(linkType.equals("COMPLETE")) {
+                            if(dist > distanceMatrix[i][j]) distanceMatrix[i][j] = dist; 
+                        }
+                        else return null;
+                    }
+                }
+                distanceMatrix[j][i] = Double.POSITIVE_INFINITY;
             }
         }
         return distanceMatrix;
