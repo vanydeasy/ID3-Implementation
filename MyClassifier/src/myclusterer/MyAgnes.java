@@ -39,15 +39,23 @@ public class MyAgnes implements Clusterer {
     public int clusterInstance(Instance instnc) throws Exception {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
-
+    
     @Override
-    public double[] distributionForInstance(Instance instnc) throws Exception {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public int numberOfClusters() throws Exception {
+        return numClusters;
     }
 
     @Override
-    public int numberOfClusters() throws Exception {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public double[] distributionForInstance(Instance instnc) throws Exception {
+        double[] p;
+        if (numberOfClusters() == 0) {
+            p = new double[1];
+            p[0] = 1;
+        } else {
+            p = new double[numberOfClusters()];
+            p[clusterInstance(instnc)] = 1.0; //@TODO : implemen clusterInstance
+        }
+        return p;
     }
 
     @Override
