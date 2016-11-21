@@ -5,6 +5,7 @@
  */
 package myclusterer;
 
+import java.util.ArrayList;
 import java.util.Random;
 import weka.clusterers.*;
 import weka.core.Capabilities;
@@ -20,10 +21,27 @@ import weka.core.Instances;
  */
 public class MyKMeans implements Clusterer, CapabilitiesHandler {
     private DistanceFunction distanceFunction = new EuclideanDistance();
-    private int numClusters = 2;
+    private int numClusters;
     private int maxIterations = 500;
     private Instances centroids = null;
     private int[] assignment = null;
+    
+    public MyKMeans(int numClusters) {
+        this.numClusters = numClusters;
+    }
+    
+    private ArrayList<Integer> initializeCentroids(Instances data) {
+        Random random = new Random();
+        ArrayList<Integer> centroids = new ArrayList<>();
+        while (centroids.size() < numClusters) {
+            Integer next;
+            do {
+                next = random.nextInt(data.numInstances());
+            } while (centroids.contains(next));
+            centroids.add(next);
+        }
+        return centroids;
+    }
     
     @Override
     public void buildClusterer(Instances instances) throws Exception {
