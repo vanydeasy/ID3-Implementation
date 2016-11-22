@@ -24,7 +24,6 @@ public class MyKMeans implements Clusterer, CapabilitiesHandler {
     private int numClusters;
     private int maxIterations = 500;
     private Instances centroids = null;
-    private int[] assignment = null;
     
     public MyKMeans(int numClusters) {
         this.numClusters = numClusters;
@@ -49,7 +48,6 @@ public class MyKMeans implements Clusterer, CapabilitiesHandler {
         boolean convergence = false;
         int numIterations = 1;
         centroids = new Instances(instances, 3);
-        assignment = new int[instances.numInstances()];
         Instances[] clusters = new Instances[numClusters];
         
         for (int i = 0; i < numClusters; i++) {
@@ -64,25 +62,53 @@ public class MyKMeans implements Clusterer, CapabilitiesHandler {
         while (convergence == false && numIterations < maxIterations) {
             // ASSIGNMENT:
             for (int i = 0; i < instances.numInstances(); i++) {
-                assignment[i] = clusterInstance(instances.instance(i));
-                clusters[assignment[i]].add(instances.instance(i));
+                int clusterNo = clusterInstance(instances.instance(i));
+                clusters[clusterNo].add(instances.instance(i));
+            }
+            
+            for (int i = 0; i < numClusters; i++) {
+                clusters[i].compactify();
             }
 
             // UPDATE CENTROID:
+            Instances oldCentroids = centroids;
             for (int i = 0; i < numClusters; i++) { // for each cluster
-                double[] attrAverage = new double[clusters[i].numAttributes()];
                 for (int j = 0; j < clusters[i].numAttributes(); j++) { // for each attribute
-                    if (clusters[i].attribute(j).isNumeric()) { // if attribute is numeric calculate mean
-                        attrAverage[j] = clusters[i].attributeStats(j).numericStats.mean;
-                    } else if (clusters[i].attribute(j).isNominal()) { // if attribute is nominal find modes
+                    
+                    // if attribute is numeric calculate mean
+                    if (clusters[i].attribute(j).isNumeric()) {
+                        double avg = clusters[i].attributeStats(j).numericStats.mean;
+                        centroids.instance(i).setValue(j, avg);
+                    
+                    // if attribute is nominal find modes
+                    } else if (clusters[i].attribute(j).isNominal()) {
                         int[] values = clusters[i].attributeStats(j).nominalCounts;
-                        // cari index di mana value max
-                        // attrAverage = index tersebut
+                        int max = 0;
+                        int idxMax = 0;
+                        for (int k = 0; k < clusters[i].attribute(j).numValues(); k++) {
+                            if (max > values[k]) {
+                                max = values[k];
+                                idxMax = k;
+                            }
+                        }
+                        centroids.instance(i).setValue(j, clusters[i].attribute(j).value(idxMax));
                     }
                 }
+                
             }   
-            // If old centroids = new centroids
-                // convergence = true;
+            
+            // DETERMINE CONVERGENCE:
+            boolean conv = true;
+            for (int i = 0; i < numClusters; i++) {
+                for (int j = 0; j < clusters[i].numAttributes(); j++) {
+                    if (centroids.instance(i).value(j) != oldCentroids.instance(i).value(j)) {
+                        conv = false;
+                        break;
+                    }
+                }
+                if (!conv) break;
+            }
+            convergence = conv;
             
             numIterations++;
         }
