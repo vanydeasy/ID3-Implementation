@@ -26,8 +26,8 @@ public class MyAgnes implements Clusterer {
     private static String SINGLE_LINKAGE = "single"; 
     private static String COMPLETE_LINKAGE = "complete"; 
     private DistanceFunction distanceFunction = null;
-    private int numClusters;
-    private String linkType = SINGLE_LINKAGE;
+    private int numClusters = 2;
+    private String linkType = COMPLETE_LINKAGE;
     private ArrayList<ArrayList<ArrayList<Instance>>> dendogram = new ArrayList<>();
     
     public MyAgnes(int numClusters, String type) {
@@ -61,20 +61,32 @@ public class MyAgnes implements Clusterer {
                 .getAsDouble();
             
             System.out.println("Minimum distance: "+minDistance);
-            ArrayList<ArrayList<Instance>> updated = new ArrayList<>();
-            for (int i = 0; i < lastIteration.size(); i++) {
-                ArrayList<Instance> cluster = new ArrayList<>(lastIteration.get(i));
-                for (int j = i + 1; j < lastIteration.size(); j++) {
-                    System.out.println(">> "+i+","+j+"\t"+lastIteration.get(i)+" "+lastIteration.get(j));
+            ArrayList<ArrayList<Instance>> updated = new ArrayList<>(lastIteration);
+            
+            int i = 0;
+            while(i < updated.size()) {
+                int j = i+1;
+                ArrayList<Instance> cluster = new ArrayList<>(updated.get(i));
+                while(j < updated.size()) {
+                    System.out.println(">> "+i+","+j+"\t"+updated.get(i)+" "+updated.get(j));
                     if(distances[i][j] == minDistance) {
-                        cluster.addAll(lastIteration.get(j));
+                        System.out.println(">>>> Merged");
+                        cluster.addAll(updated.get(j));
+                        updated.remove(updated.get(j));
+                        distances = countDistance(updated);
+                        minDistance = Arrays.stream(distances)
+                            .flatMapToDouble(a -> Arrays.stream(a))
+                            .min()
+                            .getAsDouble();
+                        break;
                     }
+                    j++;
                 }
-                updated.add(cluster);
+                updated.set(i++, cluster);
             }
             dendogram.add(updated);
             
-            for(int i=0;i<updated.size();i++) System.out.println(i+1+"\t"+updated.get(i));
+            for(int k=0;k<updated.size();k++) System.out.println(k+"\t"+updated.get(k));
         }
     }
 
