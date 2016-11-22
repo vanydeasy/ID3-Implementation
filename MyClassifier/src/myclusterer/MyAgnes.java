@@ -7,6 +7,8 @@ package myclusterer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import weka.clusterers.*;
 import weka.core.Capabilities;
 import weka.core.DistanceFunction;
@@ -21,10 +23,21 @@ import weka.core.Instances;
  * @author vanyadeasy
  */
 public class MyAgnes implements Clusterer {
+    private static String SINGLE_LINKAGE = "single"; 
+    private static String COMPLETE_LINKAGE = "complete"; 
     private DistanceFunction distanceFunction = null;
-    private int numClusters = 2;
-    private String linkType = "SINGLE";
+    private int numClusters;
+    private String linkType = SINGLE_LINKAGE;
     private ArrayList<ArrayList<ArrayList<Instance>>> dendogram = new ArrayList<>();
+    
+    public MyAgnes(int numClusters, String type) {
+        try {
+            this.numClusters = numClusters;
+            this.setLinkType(type);
+        } catch (Exception ex) {
+            Logger.getLogger(MyAgnes.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
     
     @Override
     public void buildClusterer(Instances instances) throws Exception {
@@ -93,11 +106,17 @@ public class MyAgnes implements Clusterer {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
-    public void setNumClusters(int num) {
+    public void setNumClusters(int num) throws Exception {
+        if (num <= 0) {
+            throw new Exception("Number of clusters should be > 0");
+        }
         numClusters = num;
     }
     
-    public void setLinkType(String linkType) {
+    public void setLinkType(String linkType) throws Exception {
+        if (linkType != SINGLE_LINKAGE || linkType != COMPLETE_LINKAGE) {
+            throw new Exception("Wrong link type");
+        }
         this.linkType = linkType;
     }
     
@@ -113,10 +132,10 @@ public class MyAgnes implements Clusterer {
                 for(int k = 0; k < instances.get(i).size(); k++) {
                     for(int l = 0; l < instances.get(j).size(); l++) {
                         double dist = distanceFunction.distance(instances.get(i).get(k), instances.get(j).get(l));
-                        if(linkType.equals("SINGLE")) {
+                        if(linkType.equals(SINGLE_LINKAGE)) {
                             if(dist < distanceMatrix[i][j]) distanceMatrix[i][j] = dist; 
                         }
-                        else if(linkType.equals("COMPLETE")) {
+                        else if(linkType.equals(COMPLETE_LINKAGE)) {
                             if(dist > distanceMatrix[i][j]) distanceMatrix[i][j] = dist; 
                         }
                         else return null;
