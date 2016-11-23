@@ -74,6 +74,11 @@ public class MyKMeans implements Clusterer, CapabilitiesHandler {
         }
         
         while (convergence == false && numIterations <= maxIterations) {
+            // Empty each cluster
+            for (int i = 0; i < numClusters; i++) {
+                clusters[i].delete();
+            }
+            
             // ASSIGNMENT:
             for (int i = 0; i < instances.numInstances(); i++) {
                 int clusterNo = clusterInstance(instances.instance(i));
@@ -100,7 +105,7 @@ public class MyKMeans implements Clusterer, CapabilitiesHandler {
                         int max = 0;
                         int idxMax = 0;
                         for (int k = 0; k < clusters[i].attribute(j).numValues(); k++) {
-                            if (max > values[k]) {
+                            if (max < values[k]) {
                                 max = values[k];
                                 idxMax = k;
                             }
@@ -212,9 +217,14 @@ public class MyKMeans implements Clusterer, CapabilitiesHandler {
         result.append("Number of iterations: " + numIterations + "\n\n");
         
         for (int i = 0; i < numClusters; i++) {
-            result.append(" ----- CLUSTER #"+ i + " -----\n");
+            result.append(" ----- CLUSTER #"+ i + " CENTROID -----\n");
             for (int j = 0; j < clusters[i].numAttributes(); j++) {
-                result.append(clusters[i].attribute(j).name() + " = " + centroids.instance(i).value(j) + "\n");
+                result.append(clusters[i].attribute(j).name() + " = ");
+                if (clusters[i].attribute(j).isNumeric()) {
+                    result.append(centroids.instance(i).value(j) + "\n");
+                } else {
+                    result.append(centroids.instance(i).stringValue(j) + "\n");
+                }
             }
             result.append("\n");
         }

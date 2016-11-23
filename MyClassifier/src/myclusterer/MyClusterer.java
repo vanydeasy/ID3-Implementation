@@ -53,16 +53,18 @@ public class MyClusterer {
         String input = scan.nextLine();
         switch (input) {
             case "1":
+                System.out.print("\nNumber of clusters: ");
                 SimpleKMeans kmeans = new SimpleKMeans();
                 kmeans.setSeed(3);
                 kmeans.setPreserveInstancesOrder(true);
-                kmeans.setNumClusters(2);
+                kmeans.setNumClusters(Integer.parseInt(scan.nextLine()));
                 kmeans.buildClusterer(data);
                 eval.setClusterer(kmeans);
                 eval.evaluateClusterer(data);
                 break;
             case "2":
-                MyKMeans mykmeans = new MyKMeans(2);
+                System.out.print("\nNumber of clusters: ");
+                MyKMeans mykmeans = new MyKMeans(Integer.parseInt(scan.nextLine()));
                 mykmeans.buildClusterer(data);
                 eval.setClusterer(mykmeans);
                 eval.evaluateClusterer(data);
