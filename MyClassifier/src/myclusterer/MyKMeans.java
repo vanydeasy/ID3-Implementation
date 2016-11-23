@@ -22,7 +22,7 @@ import weka.core.Instances;
 public class MyKMeans implements Clusterer, CapabilitiesHandler {
     private DistanceFunction distanceFunction = new EuclideanDistance();
     private int numClusters;
-    private int maxIterations = 500;
+    private int maxIterations = 100;
     private Instances centroids = null;
     
     public MyKMeans(int numClusters) {
@@ -44,25 +44,36 @@ public class MyKMeans implements Clusterer, CapabilitiesHandler {
     
     @Override
     public void buildClusterer(Instances instances) throws Exception {
+        getCapabilities().testWithFail(instances);
+        
         // INITIALIZATION:
         boolean convergence = false;
         int numIterations = 1;
         centroids = new Instances(instances, 3);
         Instances[] clusters = new Instances[numClusters];
+        ArrayList<Integer> center = initializeCentroids(instances);
+        distanceFunction = new EuclideanDistance(instances);
         
         for (int i = 0; i < numClusters; i++) {
             clusters[i] = new Instances(instances, instances.numInstances());
             
             // Pick centroids randomly
-            Random rand = new Random();
-            int randomNum = rand.nextInt(instances.numAttributes());
-            centroids.add(instances.instance(randomNum));
+            centroids.add(instances.instance(center.get(i)));
+            
+            for (int j = 0; j < centroids.instance(i).numAttributes(); j++) {
+                System.out.print(centroids.instance(i).value(j) + "  ");
+            }
+            System.out.println();
         }
         
-        while (convergence == false && numIterations < maxIterations) {
+        Instances oldCentroids = centroids;
+        
+        while (convergence == false && numIterations <= maxIterations) {
+            System.out.println(" ----------- " + numIterations + " ----------- ");
             // ASSIGNMENT:
             for (int i = 0; i < instances.numInstances(); i++) {
                 int clusterNo = clusterInstance(instances.instance(i));
+//                System.out.print(clusterNo + " ");
                 clusters[clusterNo].add(instances.instance(i));
             }
             
@@ -71,13 +82,13 @@ public class MyKMeans implements Clusterer, CapabilitiesHandler {
             }
 
             // UPDATE CENTROID:
-            Instances oldCentroids = centroids;
             for (int i = 0; i < numClusters; i++) { // for each cluster
                 for (int j = 0; j < clusters[i].numAttributes(); j++) { // for each attribute
                     
                     // if attribute is numeric calculate mean
                     if (clusters[i].attribute(j).isNumeric()) {
                         double avg = clusters[i].attributeStats(j).numericStats.mean;
+                        double roundedAvg = (double) Math.round(avg * 1000000) / 1000000;
                         centroids.instance(i).setValue(j, avg);
                     
                     // if attribute is nominal find modes
@@ -93,24 +104,29 @@ public class MyKMeans implements Clusterer, CapabilitiesHandler {
                         }
                         centroids.instance(i).setValue(j, clusters[i].attribute(j).value(idxMax));
                     }
-                }
-                
+                }            
             }   
             
             // DETERMINE CONVERGENCE:
             boolean conv = true;
             for (int i = 0; i < numClusters; i++) {
                 for (int j = 0; j < clusters[i].numAttributes(); j++) {
+                    System.out.print(centroids.instance(i).value(j) + "  --  ");
+                    System.out.print(oldCentroids.instance(i).value(j) + "\n");
                     if (centroids.instance(i).value(j) != oldCentroids.instance(i).value(j)) {
                         conv = false;
                         break;
                     }
                 }
-                if (!conv) break;
+                System.out.println(" -------- ");
+                if (!conv) {
+                    oldCentroids = centroids;
+                    break;
+                }
             }
             convergence = conv;
-            
             numIterations++;
+            System.out.println();
         }
             
     }
@@ -118,14 +134,16 @@ public class MyKMeans implements Clusterer, CapabilitiesHandler {
     @Override
     public int clusterInstance(Instance instance) throws Exception {
         int centroidIdx = 0;
-        double distance = 0;
-        for (int i = 0; i < centroids.numInstances(); i++) {
+        double distance = Integer.MAX_VALUE;
+        for (int i = 0; i < numClusters ; i++) {
             double currentDistance = distanceFunction.distance(centroids.instance(i), instance);
+//            System.out.print(i + " = " + currentDistance + " ");
             if (currentDistance < distance) {
                 distance = currentDistance;
                 centroidIdx = i;
             }
         }
+//        System.out.println();
         return centroidIdx;
     }
 
@@ -142,6 +160,8 @@ public class MyKMeans implements Clusterer, CapabilitiesHandler {
     @Override
     public Capabilities getCapabilities() {
         Capabilities result = new Capabilities(this);
+        result.disableAll();
+        result.enable(Capabilities.Capability.NO_CLASS);
         result.enable(Capabilities.Capability.NOMINAL_ATTRIBUTES);
         result.enable(Capabilities.Capability.NUMERIC_ATTRIBUTES);
         result.enable(Capabilities.Capability.MISSING_VALUES);

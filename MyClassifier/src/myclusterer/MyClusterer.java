@@ -5,6 +5,10 @@
  */
 package myclusterer;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.Scanner;
 import myclassifier.MyClassifier;
@@ -12,6 +16,8 @@ import weka.clusterers.ClusterEvaluation;
 import weka.clusterers.HierarchicalClusterer;
 import weka.clusterers.SimpleKMeans;
 import weka.core.Instances;
+import weka.core.converters.ArffLoader;
+import weka.core.converters.CSVLoader;
 
 /**
  *
@@ -25,12 +31,18 @@ public class MyClusterer {
      * @param args the command line arguments
      */
     public static void main(String[] args) throws IOException, Exception {
+        // Load data from ARFF or CSV
         Scanner scan = new Scanner(System.in);
         System.out.print("filename (.arff or .csv): ");
         String filename = scan.nextLine();
-
-        // Load data from ARFF or CSV
-        Instances data = MyClassifier.loadData(filename);
+        System.out.print("Load class attribute (Y/N)? ");
+        Instances data;
+        if (scan.nextLine().equalsIgnoreCase("y")){
+            data = MyClusterer.loadData(filename, true);
+        } else {
+            data = MyClusterer.loadData(filename, false);
+        }
+        
         ClusterEvaluation eval = new ClusterEvaluation();
         
         // Choose classifier
@@ -53,7 +65,8 @@ public class MyClusterer {
                 eval.evaluateClusterer(data);
                 break;
             case "2":
-                
+                MyKMeans mykmeans = new MyKMeans(3);
+                mykmeans.buildClusterer(data);
                 break;
             case "3":
                 HierarchicalClusterer agnes = new HierarchicalClusterer();
@@ -69,5 +82,20 @@ public class MyClusterer {
         }
 
         System.out.println("Cluster Evaluation: "+eval.clusterResultsToString());
+    }
+    
+    public static Instances loadData(String filename, boolean loadClass) throws FileNotFoundException, IOException {
+        Instances data;
+        if (filename.substring(filename.lastIndexOf(".") + 1).equals("arff")){
+            BufferedReader br = new BufferedReader(new FileReader(filename));
+            ArffLoader.ArffReader arff = new ArffLoader.ArffReader(br);
+            data = arff.getData();
+        } else {
+            CSVLoader loader = new CSVLoader();
+            loader.setSource(new File(filename));
+            data = loader.getDataSet();
+        }
+        if (loadClass) data.setClassIndex(data.numAttributes() - 1);
+        return data;
     }
 }
