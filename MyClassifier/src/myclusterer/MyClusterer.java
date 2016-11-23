@@ -16,6 +16,8 @@ import weka.clusterers.ClusterEvaluation;
 import weka.clusterers.HierarchicalClusterer;
 import weka.clusterers.SimpleKMeans;
 import weka.core.Instances;
+import weka.core.SelectedTag;
+import static weka.clusterers.HierarchicalClusterer.TAGS_LINK_TYPE;
 import weka.core.converters.ArffLoader;
 import weka.core.converters.CSVLoader;
 
@@ -71,10 +73,17 @@ public class MyClusterer {
                 break;
             case "3":
                 HierarchicalClusterer agnes = new HierarchicalClusterer();
+                agnes.setLinkType(new SelectedTag(1, TAGS_LINK_TYPE));
+                agnes.buildClusterer(data);
+                eval.setClusterer(agnes);
+                eval.evaluateClusterer(data);
                 break;
             case "4":
                 System.out.print("\nNumber of clusters: ");
-                MyAgnes myAgnes = new MyAgnes(Integer.parseInt(scan.nextLine()), MyAgnes.COMPLETE_LINKAGE);
+                int numClusters = Integer.parseInt(scan.nextLine());
+                System.out.print("\nChoose Type (single/complete)? ");
+                String type = scan.nextLine().equals("single") ? MyAgnes.SINGLE_LINKAGE : MyAgnes.COMPLETE_LINKAGE;
+                MyAgnes myAgnes = new MyAgnes(numClusters, MyAgnes.COMPLETE_LINKAGE);
                 myAgnes.buildClusterer(data);
                 eval.setClusterer(myAgnes);
                 eval.evaluateClusterer(data);
