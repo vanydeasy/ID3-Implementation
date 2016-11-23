@@ -63,7 +63,11 @@ public class MyKMeans implements Clusterer, CapabilitiesHandler {
             
             System.out.print(i+ ": ");
             for (int j = 0; j < centroids.instance(i).numAttributes(); j++) {
-                System.out.print(centroids.instance(i).value(j) + "  ");
+                if (centroids.instance(i).attribute(j).isNominal()) {
+                    System.out.print(centroids.instance(i).stringValue(j) + ", ");
+                } else {
+                    System.out.print(centroids.instance(i).value(j) + ", ");
+                }
             }
             System.out.println("");
         }
@@ -220,10 +224,10 @@ public class MyKMeans implements Clusterer, CapabilitiesHandler {
             result.append(" ----- CLUSTER #"+ i + " CENTROID -----\n");
             for (int j = 0; j < clusters[i].numAttributes(); j++) {
                 result.append(clusters[i].attribute(j).name() + " = ");
-                if (clusters[i].attribute(j).isNumeric()) {
-                    result.append(centroids.instance(i).value(j) + "\n");
-                } else {
+                if (clusters[i].attribute(j).isNominal()) {
                     result.append(centroids.instance(i).stringValue(j) + "\n");
+                } else {
+                    result.append(centroids.instance(i).value(j) + "\n");
                 }
             }
             result.append("\n");
