@@ -73,9 +73,11 @@ public class MyClusterer {
                 HierarchicalClusterer agnes = new HierarchicalClusterer();
                 break;
             case "4":
-                MyAgnes myAgnes = new MyAgnes(4, MyAgnes.COMPLETE_LINKAGE);
+                System.out.print("\nNumber of clusters: ");
+                MyAgnes myAgnes = new MyAgnes(Integer.parseInt(scan.nextLine()), MyAgnes.COMPLETE_LINKAGE);
                 myAgnes.buildClusterer(data);
                 eval.setClusterer(myAgnes);
+                eval.evaluateClusterer(data);
                 break;
             default:
                 System.out.println("Option not found!");

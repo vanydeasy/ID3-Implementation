@@ -111,7 +111,18 @@ public class MyAgnes implements Clusterer {
 
     @Override
     public int clusterInstance(Instance instnc) throws Exception {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        double max = Double.MAX_VALUE;
+        int result = -1;
+        for (int i = 0; i < dendogram.get(dendogram.size()-1).size(); i++) {
+            for (int j = 0; j < dendogram.get(dendogram.size()-1).get(i).size(); j++) {
+                double temp = distanceFunction.distance(instnc, instances.instance(dendogram.get(dendogram.size()-1).get(i).get(j)));
+                if (max > temp) {
+                    max = temp;
+                    result = i;
+                }
+            }
+        }
+        return result;
     }
     
     @Override
