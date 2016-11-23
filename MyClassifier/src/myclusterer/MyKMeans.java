@@ -8,6 +8,7 @@ package myclusterer;
 import java.util.ArrayList;
 import java.util.Random;
 import weka.clusterers.*;
+import weka.core.Attribute;
 import weka.core.Capabilities;
 import weka.core.CapabilitiesHandler;
 import weka.core.DistanceFunction;
@@ -26,6 +27,9 @@ public class MyKMeans implements Clusterer, CapabilitiesHandler {
     private int numIterations;
     private Instances centroids = null;
     private Instances[] clusters;
+    
+    private int fullNumInstances;
+    private Instance fullAttrAvg;
     
     public MyKMeans(int numClusters) {
         this.numClusters = numClusters;
@@ -56,6 +60,13 @@ public class MyKMeans implements Clusterer, CapabilitiesHandler {
         ArrayList<Integer> center = initializeCentroids(instances);
         distanceFunction = new EuclideanDistance(instances);
         
+        fullAttrAvg = instances.instance(0);
+        fullNumInstances = instances.numInstances();
+        double[] attrAvg = calculateMean(instances);
+        for (int i = 0; i < instances.numAttributes(); i++) {
+            fullAttrAvg.setValue(i, attrAvg[i]);
+        }
+        
         System.out.println("\nCENTROID INITIALIZATION");
         for (int i = 0; i < numClusters; i++) {
             clusters[i] = new Instances(instances, instances.numInstances());
@@ -71,7 +82,6 @@ public class MyKMeans implements Clusterer, CapabilitiesHandler {
             }
             System.out.println("");
         }
-        System.out.println("");
         Instances oldCentroids = new Instances(instances, 3);
         for (int i = 0; i < numClusters; i++) {
             oldCentroids.add(centroids.instance(i));
@@ -95,26 +105,12 @@ public class MyKMeans implements Clusterer, CapabilitiesHandler {
 
             // UPDATE CENTROID:
             for (int i = 0; i < numClusters; i++) { // for each cluster
+                double[] mean = calculateMean(clusters[i]);
                 for (int j = 0; j < clusters[i].numAttributes(); j++) { // for each attribute
-                    
-                    // if attribute is numeric calculate mean
                     if (clusters[i].attribute(j).isNumeric()) {
-                        double avg = clusters[i].attributeStats(j).numericStats.mean;
-                        double roundedAvg = (double) Math.round(avg * 1000000) / 1000000;
-                        centroids.instance(i).setValue(j, avg);
-                    
-                    // if attribute is nominal find modes
+                        centroids.instance(i).setValue(j, mean[j]);
                     } else if (clusters[i].attribute(j).isNominal()) {
-                        int[] values = clusters[i].attributeStats(j).nominalCounts;
-                        int max = 0;
-                        int idxMax = 0;
-                        for (int k = 0; k < clusters[i].attribute(j).numValues(); k++) {
-                            if (max < values[k]) {
-                                max = values[k];
-                                idxMax = k;
-                            }
-                        }
-                        centroids.instance(i).setValue(j, clusters[i].attribute(j).value(idxMax));
+                        centroids.instance(i).setValue(j, clusters[i].attribute(j).value((int)mean[j]));
                     }
                 }            
             }   
@@ -155,6 +151,29 @@ public class MyKMeans implements Clusterer, CapabilitiesHandler {
             }
         }
         return centroidIdx;
+    }
+    
+    public double[] calculateMean(Instances data) {
+        double[] avg = new double[data.numAttributes()];
+        for (int j = 0; j < data.numAttributes(); j++) { // for each attribute
+            // if attribute is numeric calculate mean
+            if (data.attribute(j).isNumeric()) {
+                avg[j] = data.attributeStats(j).numericStats.mean;
+            // if attribute is nominal find modes
+            } else if (data.attribute(j).isNominal()) {
+                int[] values = data.attributeStats(j).nominalCounts;
+                int max = 0;
+                int idxMax = 0;
+                for (int k = 0; k < data.attribute(j).numValues(); k++) {
+                    if (max < values[k]) {
+                        max = values[k];
+                        idxMax = k;
+                    }
+                }
+                avg[j]= idxMax;
+            }
+        }
+        return avg;
     }
 
     @Override
@@ -220,8 +239,18 @@ public class MyKMeans implements Clusterer, CapabilitiesHandler {
         result.append("Number of clusters: "+ numClusters + "\n");
         result.append("Number of iterations: " + numIterations + "\n\n");
         
+        result.append(" ----- FULL DATA ("+ fullNumInstances +")-----\n");
+        for (int j = 0; j < centroids.numAttributes(); j++) {
+            result.append(centroids.attribute(j).name() + " = ");
+            if (centroids.attribute(j).isNominal()) {
+                result.append(fullAttrAvg.stringValue(j) + "\n");
+            } else {
+                result.append(fullAttrAvg.value(j) + "\n");
+            }
+        }
+        result.append("\n");
         for (int i = 0; i < numClusters; i++) {
-            result.append(" ----- CLUSTER #"+ i + " CENTROID -----\n");
+            result.append(" ----- Cluster #"+ i + " ("+ clusters[i].numInstances()+")-----\n");
             for (int j = 0; j < clusters[i].numAttributes(); j++) {
                 result.append(clusters[i].attribute(j).name() + " = ");
                 if (clusters[i].attribute(j).isNominal()) {
