@@ -18,9 +18,6 @@ import weka.core.Instances;
  * @author vanyadeasy
  */
 public class MyClusterer {
-    private static String SINGLE_LINKAGE = "single"; 
-    private static String COMPLETE_LINKAGE = "complete"; 
-    
     /**
      * @param args the command line arguments
      */
@@ -59,7 +56,7 @@ public class MyClusterer {
                 HierarchicalClusterer agnes = new HierarchicalClusterer();
                 break;
             case "4":
-                MyAgnes myAgnes = new MyAgnes(2, SINGLE_LINKAGE);
+                MyAgnes myAgnes = new MyAgnes(4, MyAgnes.COMPLETE_LINKAGE);
                 myAgnes.buildClusterer(data);
                 eval.setClusterer(myAgnes);
                 break;
