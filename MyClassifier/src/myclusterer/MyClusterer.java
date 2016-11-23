@@ -62,8 +62,10 @@ public class MyClusterer {
                 eval.evaluateClusterer(data);
                 break;
             case "2":
-                MyKMeans mykmeans = new MyKMeans(3);
+                MyKMeans mykmeans = new MyKMeans(2);
                 mykmeans.buildClusterer(data);
+                eval.setClusterer(mykmeans);
+                eval.evaluateClusterer(data);
                 break;
             case "3":
                 HierarchicalClusterer agnes = new HierarchicalClusterer();
@@ -78,7 +80,7 @@ public class MyClusterer {
                 break;
         }
 
-        System.out.println("Cluster Evaluation: "+eval.clusterResultsToString());
+        System.out.println("\nCluster Evaluation:\n "+eval.clusterResultsToString());
     }
     
     public static Instances loadData(String filename, boolean loadClass) throws FileNotFoundException, IOException {
