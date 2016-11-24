@@ -73,7 +73,11 @@ public class MyClusterer {
                 break;
             case "3":
                 HierarchicalClusterer agnes = new HierarchicalClusterer();
-                agnes.setLinkType(new SelectedTag(1, TAGS_LINK_TYPE));
+                System.out.print("\nNumber of clusters: ");
+                agnes.setNumClusters(Integer.parseInt(scan.nextLine()));
+                System.out.print("\nChoose Type (single/complete)? ");
+                int linkType = scan.nextLine().equals("single") ? 0 : 1;
+                agnes.setLinkType(new SelectedTag(linkType, TAGS_LINK_TYPE));
                 agnes.buildClusterer(data);
                 eval.setClusterer(agnes);
                 eval.evaluateClusterer(data);

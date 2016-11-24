@@ -69,19 +69,12 @@ public class MyAgnes implements Clusterer {
             firstIteration.add(cluster);
         }
         dendogram.add(firstIteration);
-        
-        // Print init clusters
-        System.out.println("--------- INIT CLUSTERS ---------");
-        for(int k=0;k<firstIteration.size();k++) System.out.println(k+"\t"+firstIteration.get(k));
             
         // If number of clusters = desired, terminate
         while(dendogram.get(dendogram.size()-1).size() > numClusters) {
-            System.out.println("--------- #"+dendogram.size()+" ---------");
             ArrayList<ArrayList<Integer>> lastIteration = dendogram.get(dendogram.size()-1);
             double[][] distanceMatrix = countDistance(lastIteration);
             double minDistance = getMinimumDistance(distanceMatrix);
-            
-            System.out.println("Minimum distance: "+minDistance);
             
             ArrayList<ArrayList<Integer>> updated = new ArrayList<>(lastIteration);
             int i = 0;
@@ -103,9 +96,6 @@ public class MyAgnes implements Clusterer {
                 updated.set(i++, cluster);
             }
             dendogram.add(updated);
-            
-            // Print clusters
-            for(int k=0;k<updated.size();k++) System.out.println(k+"\t"+updated.get(k));
         }
     }
 
@@ -179,5 +169,16 @@ public class MyAgnes implements Clusterer {
                 .flatMapToDouble(a -> Arrays.stream(a))
                 .min()
                 .getAsDouble();
+    }
+    
+    @Override
+    public String toString() {
+        StringBuilder result = new StringBuilder();
+        ArrayList<ArrayList<Integer>> clusters = dendogram.get(dendogram.size()-1);
+        for(int i=0;i<clusters.size();i++) {
+            result.append("Cluster "+i+"\t"+clusters.get(i)+"\n");
+        }
+        result.append("\n");
+        return result.toString();
     }
 }
