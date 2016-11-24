@@ -87,7 +87,7 @@ public class MyClusterer {
                 int numClusters = Integer.parseInt(scan.nextLine());
                 System.out.print("\nChoose Type (single/complete)? ");
                 String type = scan.nextLine().equals("single") ? MyAgnes.SINGLE_LINKAGE : MyAgnes.COMPLETE_LINKAGE;
-                MyAgnes myAgnes = new MyAgnes(numClusters, MyAgnes.COMPLETE_LINKAGE);
+                MyAgnes myAgnes = new MyAgnes(numClusters, type);
                 myAgnes.buildClusterer(data);
                 eval.setClusterer(myAgnes);
                 eval.evaluateClusterer(data);
